@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bizarre Legacy: Core Mechanics</title>
+    <title>Bizarre Legacy: Standoff Mode</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: monospace; touch-action: none; -webkit-user-select: none; }
@@ -50,7 +50,7 @@
         const e = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0xff0000})); e.position.x = 2; s.add(e);
         const k = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.1), new THREE.MeshStandardMaterial({color: 0xcccccc})); k.visible = false; s.add(k);
         
-        let php=100, ehp=100, gOver=false, isTS=false, qteOn=false, rSize=200, qHits=0, diff='', isRetreating=false, knifeActive=false, knifeReturning=false;
+        let php=100, ehp=100, gOver=false, isTS=false, qteOn=false, rSize=200, qHits=0, diff='', isRetreating=false, knifeActive=false, knifeReturning=false, isPausing=false;
         let parryAttempts = 0, lastTS = Date.now(), canAttack = true;
 
         const oraBtn = document.getElementById('oraBtn');
@@ -65,9 +65,8 @@
         }
 
         function go() { 
-            if(gOver) return;
+            if(gOver || isPausing) return; // Prevent spam during standoff pause
 
-            // Knife Parry (2 tries, no cooldown)
             if(knifeActive && !knifeReturning) {
                 parryAttempts++;
                 if(parryAttempts <= 2 && k.position.x < -0.5 && k.position.x > -2.5) {
@@ -77,29 +76,33 @@
                 if(parryAttempts > 2) return;
             }
 
-            // Time Stop Spam (No cooldown, 1 damage)
             if(isTS && document.body.classList.contains('ts-player')) {
-                ehp -= 1; upd(); 
-                p.position.x = 1; setTimeout(()=>p.position.x=-2, 50);
-                return;
+                ehp -= 1; upd(); p.position.x = 1; setTimeout(()=>p.position.x=-2, 50); return;
             }
 
-            // Normal Attack (0.5s cooldown, 5 damage)
             if(!canAttack || isTS || isRetreating || qteOn) { if(qteOn) qHit(); return; }
 
-            canAttack = false;
-            oraBtn.disabled = true;
-            ehp -= 5; upd();
+            canAttack = false; oraBtn.disabled = true; ehp -= 5; upd();
             p.position.x = 1; setTimeout(()=>p.position.x=-2, 100);
-            setTimeout(() => { if(!gOver) { canAttack = true; oraBtn.disabled = false; } }, 500);
+            setTimeout(() => { if(!gOver && !isPausing) { canAttack = true; oraBtn.disabled = false; } }, 500);
         }
         
         function knifePhase() {
             if(gOver || isTS) return;
-            isRetreating = true; knifeActive = true; knifeReturning = false; parryAttempts = 0;
-            e.position.x = 5; k.visible = false;
+            
+            // --- STANDOFF PAUSE ---
+            isPausing = true; isRetreating = true;
+            document.getElementById('msg').innerText = "PREPARE!";
+            e.position.x = 5; 
+            oraBtn.disabled = true;
+
             setTimeout(() => {
+                isPausing = false;
+                knifeActive = true; knifeReturning = false; parryAttempts = 0;
                 k.position.set(5, 0, 0); k.visible = true; k.material.color.set(0xcccccc);
+                document.getElementById('msg').innerText = "KNIVES!";
+                oraBtn.disabled = false;
+
                 const tLoop = setInterval(() => {
                     if(gOver || isTS) { clearInterval(tLoop); k.visible=false; return; }
                     if(!knifeReturning) {
@@ -116,16 +119,27 @@
                         }
                     }
                 }, 20);
-            }, 500);
+            }, 800); // 0.8s freeze for reaction
         }
 
         function eAtk() { 
-            if(gOver || isTS || isRetreating || qteOn) return; 
+            if(gOver || isTS || isRetreating || qteOn || isPausing) return; 
             e.position.x=-1; php-=(diff=='hard'?15:10); upd(); 
             setTimeout(()=>e.position.x=2,100); 
         }
 
-        function qOn() { qteOn=true; qHits=0; rSize=200; document.getElementById('qte').style.display='block'; }
+        function qOn() { 
+            isPausing = true;
+            document.getElementById('msg').innerText = "WATCH OUT!";
+            oraBtn.disabled = true;
+            
+            setTimeout(() => {
+                isPausing = false;
+                qteOn=true; qHits=0; rSize=200; 
+                document.getElementById('qte').style.display='block';
+                oraBtn.disabled = false;
+            }, 800);
+        }
 
         function qHit() { 
             if(rSize>75&&rSize<95){ 
