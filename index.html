@@ -1,207 +1,66 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bizarre Legacy: The World</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bizarre Legacy</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <style>
-        body { margin: 0; overflow: hidden; background: #111; font-family: 'Courier New', monospace; touch-action: manipulation; }
-        
-        /* The Difficulty Menu - MUST SHOW FIRST */
-        #start-menu { 
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-            background: rgba(0,0,0,0.95); padding: 30px; border: 5px solid gold; 
-            text-align: center; color: white; border-radius: 20px; z-index: 9999; width: 80%; max-width: 400px;
-        }
-        
-        .btn { padding: 15px; font-size: 18px; cursor: pointer; border: none; font-weight: bold; margin: 10px 0; border-radius: 10px; width: 100%; display: block; }
-        .easy-btn { background: #00ff00; color: black; }
-        .med-btn { background: #ffaa00; color: black; }
-        .hard-btn { background: #ff0000; color: white; }
-
-        /* Game UI */
-        #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: white; pointer-events: none; display: none; }
-        .health-container { display: flex; justify-content: space-around; padding: 10px; }
-        .bar { width: 120px; height: 15px; border: 2px solid #fff; background: #333; }
-        #playerHealth { width: 100%; height: 100%; background: #00ff00; transition: 0.3s; }
-        #enemyHealth { width: 100%; height: 100%; background: #ff0000; transition: 0.3s; }
-        #log { font-size: 20px; font-weight: bold; color: gold; text-shadow: 2px 2px #000; margin-top: 5px; }
-        
-        /* QTE Ring */
-        #qte-container { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: none; z-index: 500; }
-        #target-circle { width: 80px; height: 80px; border: 4px solid white; border-radius: 50%; position: absolute; top: -40px; left: -40px; }
-        #expanding-ring { width: 200px; height: 200px; border: 4px solid gold; border-radius: 50%; position: absolute; top: -100px; left: -100px; }
-        
-        /* Retry Screen */
-        #retry-screen { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); padding: 40px; border: 5px solid gold; text-align: center; display: none; z-index: 10000; color: white; border-radius: 20px; }
-
-        #controls { position: absolute; bottom: 40px; width: 100%; text-align: center; display: none; }
-        button#mainBtn { background: #ff0055; color: white; padding: 20px 40px; font-size: 24px; border-radius: 10px; border: 4px solid white; font-weight: bold; }
-        .timestop-active { filter: invert(1) grayscale(1); }
+        body { margin: 0; overflow: hidden; background: #111; font-family: monospace; touch-action: none; }
+        #menu, #retry { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); background: rgba(0,0,0,0.9); padding: 20px; border: 4px solid gold; text-align: center; color: #fff; z-index: 99; width: 280px; border-radius: 15px; }
+        #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: #fff; display: none; pointer-events: none; }
+        .bar-bg { width: 120px; height: 12px; border: 2px solid #fff; background: #333; margin: 5px auto; }
+        #pBar { width: 100%; height: 100%; background: #0f0; transition: 0.2s; }
+        #eBar { width: 100%; height: 100%; background: #f00; transition: 0.2s; }
+        #qte { position: absolute; top: 50%; left: 50%; display: none; z-index: 10; }
+        #t-circ { width: 80px; height: 80px; border: 4px solid #fff; border-radius: 50%; position: absolute; transform: translate(-50%,-50%); }
+        #r-circ { width: 200px; height: 200px; border: 4px solid gold; border-radius: 50%; position: absolute; transform: translate(-50%,-50%); }
+        #ctrl { position: absolute; bottom: 30px; width: 100%; text-align: center; display: none; }
+        button { padding: 15px 30px; font-size: 18px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; margin: 5px; width: 100%; }
+        .ts { filter: invert(1) grayscale(1); }
     </style>
 </head>
 <body>
-
-    <div id="start-menu">
-        <h2 style="color: gold; margin-top: 0;">BIZARRE LEGACY</h2>
-        <p>CHOOSE DIFFICULTY</p>
-        <button class="btn easy-btn" onclick="startGame('easy')">EASY</button>
-        <button class="btn med-btn" onclick="startGame('med')">MEDIUM</button>
-        <button class="btn hard-btn" onclick="startGame('hard')">HARD</button>
+    <div id="menu">
+        <h2 style="color:gold">BIZARRE LEGACY</h2>
+        <button style="background:#0f0" onclick="start('easy')">EASY</button>
+        <button style="background:#fa0" onclick="start('med')">MEDIUM</button>
+        <button style="background:#f00;color:#fff" onclick="start('hard')">HARD</button>
     </div>
-
     <div id="ui">
-        <div class="health-container">
-            <div>JO-STAR<div class="bar"><div id="playerHealth"></div></div></div>
-            <div>DIO<div class="bar"><div id="enemyHealth"></div></div></div>
+        <div style="display:flex;justify-content:space-around">
+            <div>JO-STAR<div class="bar-bg"><div id="pBar"></div></div></div>
+            <div>DIO<div class="bar-bg"><div id="eBar"></div></div></div>
         </div>
-        <p id="log">BATTLE START!</p>
+        <p id="msg" style="color:gold;font-size:18px">READY?</p>
     </div>
-
-    <div id="qte-container">
-        <div id="target-circle"></div>
-        <div id="expanding-ring"></div>
-    </div>
-
-    <div id="retry-screen">
-        <h1 id="end-status">GAME OVER</h1>
-        <button class="btn med-btn" onclick="location.reload()">RETRY BATTLE</button>
-    </div>
-
-    <div id="controls">
-        <button id="mainBtn" onclick="handleClick()">ORA!</button>
-    </div>
+    <div id="qte"><div id="t-circ"></div><div id="r-circ"></div></div>
+    <div id="retry" style="display:none"><h2 id="st"></h2><button onclick="location.reload()">RETRY</button></div>
+    <div id="ctrl"><button style="background:#f05;color:#fff;width:150px" onclick="go()">ORA!</button></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
-        scene.add(new THREE.AmbientLight(0x606060));
-        camera.position.z = 6;
+        const s = new THREE.Scene(), c = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000), r = new THREE.WebGLRenderer({antialias:true});
+        r.setSize(window.innerWidth, window.innerHeight); document.body.appendChild(r.domElement);
+        s.add(new THREE.AmbientLight(0xffffff, 0.8)); c.position.z = 5;
+        const p = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0x0066ff})); p.position.x = -2; s.add(p);
+        const e = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0xff0000})); e.position.x = 2; s.add(e);
+        
+        let php=100, ehp=100, gOver=false, isTS=false, qteOn=false, rSize=200, qHits=0, diff='', tsUsed=0, lastTS=0;
 
-        let pHP = 100, eHP = 100, gameOver = false, isTimeStopped = false, qteActive = false;
-        let ringSize = 200, qteSuccesses = 0, diff = 'easy', tsUsed = 0, lastTsTime = 0;
-
-        const player = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({ color: 0x0066ff }));
-        player.position.x = -2; scene.add(player);
-        const enemy = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({ color: 0xff0000 }));
-        enemy.position.x = 2; scene.add(enemy);
-
-        function startGame(mode) {
-            diff = mode;
-            document.getElementById('start-menu').style.display = 'none';
-            document.getElementById('ui').style.display = 'block';
-            document.getElementById('controls').style.display = 'block';
-            
-            // 1. Enemy Normal Attack Interval
-            let attackSpeed = (diff === 'easy') ? 10000 : (diff === 'med' ? 5000 : 3000);
-            setInterval(enemyNormalAttack, attackSpeed);
-            
-            // 2. Regeneration (Medium & Hard: 1/4 HP every 10s)
-            if(diff !== 'easy') {
-                setInterval(() => {
-                    if(!gameOver && !isTimeStopped && eHP < 100) {
-                        eHP = Math.min(100, eHP + 25);
-                        document.getElementById('log').innerText = "DIO REGENERATED!";
-                        updateUI();
-                    }
-                }, 10000);
-            }
-            
-            // 3. Time Stop Trigger Loop (Checks every 5s)
-            setInterval(() => {
-                let now = Date.now();
-                let cdReady = (now - lastTsTime) > 20000;
-                if(!gameOver && !isTimeStopped) {
-                    if(diff === 'easy' && tsUsed < 1) startQTE();
-                    else if(diff !== 'easy' && cdReady) startQTE();
-                }
-            }, 5000);
+        function start(m) {
+            diff=m; document.getElementById('menu').style.display='none';
+            document.getElementById('ui').style.display=document.getElementById('ctrl').style.display='block';
+            setInterval(eAtk, diff=='easy'?10000 : (diff=='med'?5000:3000));
+            if(diff!='easy') setInterval(()=>{ if(!gOver&&!isTS&&ehp<100){ehp=Math.min(100,ehp+25); upd();} }, 10000);
+            setInterval(()=>{ if(!gOver&&!isTS && (diff!='easy'||tsUsed<1) && (Date.now()-lastTS>20000)) qOn(); }, 5000);
         }
 
-        function handleClick() {
-            if (gameOver || isTimeStopped) return;
-            if (qteActive) checkQTE(); else playerAttack();
-        }
-
-        function playerAttack() {
-            player.position.x = 1; eHP -= 5; updateUI();
-            setTimeout(() => player.position.x = -2, 100);
-        }
-
-        function enemyNormalAttack() {
-            if (gameOver || isTimeStopped) return;
-            enemy.position.x = -1;
-            pHP -= (diff === 'hard' ? 12 : 8); // Hard mode hits slightly harder
-            document.getElementById('log').innerText = "MUDA!";
-            updateUI();
-            setTimeout(() => enemy.position.x = 2, 100);
-        }
-
-        function startQTE() {
-            qteActive = true; qteSuccesses = 0; ringSize = 200;
-            document.getElementById('qte-container').style.display = 'block';
-            document.getElementById('log').innerText = "DODGE THE TIME STOP!";
-        }
-
-        function checkQTE() {
-            if (ringSize > 70 && ringSize < 95) {
-                qteSuccesses++;
-                document.getElementById('log').innerText = "PERFECT! (" + qteSuccesses + "/3)";
-                ringSize = 200;
-                if (qteSuccesses >= 3) {
-                    qteActive = false; document.getElementById('qte-container').style.display = 'none';
-                    document.getElementById('log').innerText = "YOU DODGED IT!";
-                }
-            } else {
-                qteActive = false; document.getElementById('qte-container').style.display = 'none';
-                startTimeStop();
-            }
-        }
-
-        function startTimeStop() {
-            isTimeStopped = true; tsUsed++; lastTsTime = Date.now();
-            document.body.classList.add('timestop-active');
-            document.getElementById('log').innerText = "ZA WARUDO!!";
-            let hits = 0;
-            const tsLoop = setInterval(() => {
-                if (gameOver) { clearInterval(tsLoop); return; }
-                enemy.position.x = -1; pHP -= 4; updateUI();
-                setTimeout(() => enemy.position.x = 2, 100);
-                hits++;
-                if (hits >= 9) {
-                    clearInterval(tsLoop); isTimeStopped = false;
-                    document.body.classList.remove('timestop-active');
-                    document.getElementById('log').innerText = "TIME RESUMES...";
-                }
-            }, 1000);
-        }
-
-        function updateUI() {
-            document.getElementById('playerHealth').style.width = Math.max(0, pHP) + "%";
-            document.getElementById('enemyHealth').style.width = Math.max(0, eHP) + "%";
-            if (pHP <= 0 || eHP <= 0) endGame();
-        }
-
-        function endGame() {
-            gameOver = true;
-            document.getElementById('mainBtn').style.display = 'none';
-            document.getElementById('retry-screen').style.display = 'block';
-            document.getElementById('end-status').innerText = pHP <= 0 ? "YOU WERE RETIRED" : "DIO DEFEATED!";
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-            if (qteActive) {
-                ringSize -= 2.5; if (ringSize < 40) ringSize = 200;
-                const ring = document.getElementById('expanding-ring');
-                ring.style.width = ringSize + "px"; ring.style.height = ringSize + "px";
-                ring.style.top = -(ringSize/2) + "px"; ring.style.left = -(ringSize/2) + "px";
-            }
-            renderer.render(scene, camera);
-        }
+        function go() { if(gOver||isTS)return; if(qteOn)qHit(); else { p.position.x=1; ehp-=5; upd(); setTimeout(()=>p.position.x=-2,100); }}
+        function eAtk() { if(gOver||isTS)return; e.position.x=-1; php-=(diff=='hard'?12:8); upd(); setTimeout(()=>e.position.x=2,100); }
+        function qOn() { qteOn=true; qHits=0; rSize=200; document.getElementById('qte').style.display='block'; }
+        function qHit() { if(rSize>70&&rSize<95){ qHits++; rSize=200; if(qHits>=3){qteOn=false; document.getElementById('qte').style.display='none';}} else { qteOn=false; document.getElementById('qte').style.display='none'; doTS(); }}
+        function doTS() { isTS=true; tsUsed++; lastTS=Date.now(); document.body.classList.add('ts'); let h=0; const l=setInterval(()=>{ if(gOver){clearInterval(l);return;} e.position.x=-1; php-=4; upd(); setTimeout(()=>e.position.x=2,100); h++; if(h>=9){clearInterval(l); isTS=false; document.body.classList.remove('ts');}},1000); }
+        function upd() { document.getElementById('pBar').style.width=Math.max(0,php)+'%'; document.getElementById('eBar').style.width=Math.max(0,ehp)+'%'; if(php<=0||ehp<=0) { gOver=true; document.getElementById('retry').style.display='block'; document.getElementById('st').innerText=php<=0?"RETIRED":"DIO DEFEATED"; }}
+        function animate() { requestAnimationFrame(animate); if(qteOn){ rSize-=2.5; if(rSize<40)rSize=200; document.getElementById('r-circ').style.width=document.getElementById('r-circ').style.height=rSize+'px'; } r.render(s, c); }
         animate();
     </script>
 </body>
