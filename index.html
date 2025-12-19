@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bizarre Legacy: Classic Combat</title>
+    <title>Bizarre Legacy: Balanced Timing</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: monospace; touch-action: none; -webkit-user-select: none; }
@@ -127,18 +127,15 @@
 
         async function runAI() {
             while(matchActive && !gOver) {
-                // Adjust delay based on difficulty
-                let wait = 800;
-                if(diff === 'med') wait = 600;
-                if(diff === 'hard') wait = 400;
+                // standardized wait of 1.1 seconds for DIO Melee
+                await new Promise(r => setTimeout(r, 1100));
                 
-                await new Promise(r => setTimeout(r, wait));
                 if(isTS || eStunned || isDummy) continue;
                 
-                // Attack logic
-                let chance = 0.3;
+                // Attack logic: Higher difficulty = higher chance to strike every 1.1s
+                let chance = 0.3; // Easy
                 if(diff === 'med') chance = 0.5;
-                if(diff === 'hard') chance = 0.7;
+                if(diff === 'hard') chance = 0.8;
 
                 if(Math.random() < chance) {
                     e.position.x = 0; 
