@@ -1,8 +1,7 @@
-
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bizarre Legacy: Jotaro Overdrive</title>
+    <title>Bizarre Legacy: Judgment</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: monospace; touch-action: none; -webkit-user-select: none; }
@@ -33,7 +32,7 @@
             <div>JOTARO<div class="bar-bg"><div id="pBar"></div></div></div>
             <div>DIO<div class="bar-bg"><div id="eBar"></div></div></div>
         </div>
-        <p id="msg" style="color:gold;font-size:18px">THE FINAL STAND</p>
+        <p id="msg" style="color:gold;font-size:18px">SURVIVE</p>
     </div>
     <div id="qte"><div id="t-circ"></div><div id="r-circ"></div></div>
     <div id="retry" style="display:none"><h2 id="st"></h2><button onclick="location.reload()">RETRY</button></div>
@@ -51,21 +50,23 @@
         const k = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.1), new THREE.MeshStandardMaterial({color: 0xcccccc})); k.visible = false; s.add(k);
         
         let php=100, ehp=100, gOver=false, isTS=false, qteOn=false, rSize=200, qHits=0, diff='', isRetreating=false, knifeActive=false, knifeReturning=false, isPausing=false, isCharging=false;
-        let lastTS = Date.now(), canAttack = true, dioBlockChance = 10, volleyInc = 15, knifeSpeed = 0.35;
+        let lastTS = Date.now(), lastKnife = Date.now(), canAttack = true, dioBlockChance = 10, volleyInc = 15, knifeSpeed = 0.35;
 
         const oraBtn = document.getElementById('oraBtn');
         oraBtn.addEventListener('touchstart', (ev) => { ev.preventDefault(); go(); });
 
         function start(m) {
             diff=m; 
-            if(diff=='easy'){ dioBlockChance=10; volleyInc=10; }
-            else if(diff=='med'){ dioBlockChance=20; volleyInc=15; }
-            else { dioBlockChance=30; volleyInc=25; }
+            dioBlockChance = (m=='easy') ? 10 : (m=='med' ? 20 : 30);
+            volleyInc = (m=='easy') ? 10 : (m=='med' ? 15 : 25);
             document.getElementById('menu').style.display='none';
             document.getElementById('ui').style.display=document.getElementById('ctrl').style.display='block';
+            
             setInterval(eAtk, diff=='easy'?4000 : (diff=='med'?2500:1200));
-            setInterval(() => { if(!isRetreating && !isTS && !isPausing && !qteOn) knifePhase(); }, 4000);
-            setInterval(() => { if(!gOver && !isTS && !isRetreating && !isPausing && !qteOn && (Date.now() - lastTS > 3500)) qOn(); }, 2000);
+            // Knife frequency increased (3.5s)
+            setInterval(() => { if(!isRetreating && !isTS && !isPausing && !qteOn) knifePhase(); }, 3500);
+            // TS frequency decreased (6s)
+            setInterval(() => { if(!gOver && !isTS && !isRetreating && !isPausing && !qteOn && (Date.now() - lastTS > 6000)) qOn(); }, 2000);
         }
 
         function go() { 
@@ -95,7 +96,7 @@
                 k.position.set(5, 0, 0); k.visible = true; k.material.color.set(0xcccccc);
                 oraBtn.disabled = false;
                 const tLoop = setInterval(() => {
-                    if(gOver || isTS) { clearInterval(tLoop); k.visible=false; return; }
+                    if(gOver || (isTS && document.body.classList.contains('ts-player'))) { clearInterval(tLoop); k.visible=false; return; }
                     if(!knifeReturning) {
                         k.position.x -= knifeSpeed; 
                         if(k.position.x <= -2.5) { clearInterval(tLoop); endKnifePhase(true); }
@@ -155,7 +156,12 @@
             let h=0; const l=setInterval(()=>{
                 if(gOver){clearInterval(l);return;}
                 e.position.x=-1; php-=4; upd(); setTimeout(()=>e.position.x=2,100); h++;
-                if(h>=10){ clearInterval(l); isTS=false; document.body.classList.remove('ts-dio'); canAttack = true; oraBtn.disabled = false; }
+                if(h>=10){ 
+                    clearInterval(l); 
+                    // DIO COMBO: Knife immediately after TS ends
+                    setTimeout(() => { if(!gOver) knifePhase(); }, 200);
+                    isTS=false; document.body.classList.remove('ts-dio'); canAttack = true; oraBtn.disabled = false; 
+                }
             }, 800);
         }
 
