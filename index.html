@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bizarre Legacy: Speed Gap</title>
+    <title>Bizarre Legacy: 40% Volley</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: monospace; touch-action: none; -webkit-user-select: none; }
@@ -32,7 +32,7 @@
             <div>JOTARO<div class="bar-bg"><div id="pBar"></div></div></div>
             <div>DIO<div class="bar-bg"><div id="eBar"></div></div></div>
         </div>
-        <p id="msg" style="color:gold;font-size:18px">SURVIVE</p>
+        <p id="msg" style="color:gold;font-size:18px">FINAL STAND</p>
     </div>
     <div id="qte"><div id="t-circ"></div><div id="r-circ"></div></div>
     <div id="retry" style="display:none"><h2 id="st"></h2><button onclick="location.reload()">RETRY</button></div>
@@ -50,20 +50,19 @@
         const k = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.1), new THREE.MeshStandardMaterial({color: 0xcccccc})); k.visible = false; s.add(k);
         
         let php=100, ehp=100, gOver=false, isTS=false, qteOn=false, rSize=200, qHits=0, diff='', isRetreating=false, knifeActive=false, knifeReturning=false, isPausing=false, isCharging=false;
-        let lastTS = Date.now(), canAttack = true, dioBlockChance = 10, volleyInc = 15, knifeSpeed = 0.35;
+        let lastTS = Date.now(), canAttack = true, dioReturnChance = 40, knifeSpeed = 0.35;
 
         const oraBtn = document.getElementById('oraBtn');
         oraBtn.addEventListener('touchstart', (ev) => { ev.preventDefault(); go(); });
 
         function start(m) {
-            diff=m; 
-            dioBlockChance = (m=='easy') ? 10 : (m=='med' ? 20 : 30);
-            volleyInc = (m=='easy') ? 10 : (m=='med' ? 15 : 25);
+            diff = m; 
+            // 40% chance for Hard, -15% each tier below
+            dioReturnChance = (m=='easy') ? 10 : (m=='med' ? 25 : 40);
             document.getElementById('menu').style.display='none';
             document.getElementById('ui').style.display=document.getElementById('ctrl').style.display='block';
             
-            // DIO punch speed: Hard mode is now 0.95s (Your speed is 0.75s)
-            setInterval(eAtk, diff=='easy'?3000 : (diff=='med'?1800:950));
+            setInterval(eAtk, diff=='easy'?3500 : (diff=='med'?2200:1100));
             setInterval(() => { if(!isRetreating && !isTS && !isPausing && !qteOn) knifePhase(); }, 3500);
             setInterval(() => { if(!gOver && !isTS && !isRetreating && !isPausing && !qteOn && (Date.now() - lastTS > 6000)) qOn(); }, 2000);
         }
@@ -88,7 +87,7 @@
         function knifePhase() {
             if(gOver || (isTS && document.body.classList.contains('ts-player')) || isRetreating || qteOn) return;
             isRetreating = true; isPausing = true; canAttack = false;
-            let currentChance = dioBlockChance; knifeSpeed = 0.35;
+            knifeSpeed = 0.35;
             document.getElementById('msg').innerText = "KNIVES!"; e.position.x = 5; oraBtn.disabled = true;
             setTimeout(() => {
                 isPausing = false; knifeActive = true; knifeReturning = false;
@@ -102,8 +101,8 @@
                     } else {
                         k.position.x += (knifeSpeed * 1.5); 
                         if(k.position.x >= 2.0 && knifeReturning) {
-                            if(Math.random() * 100 < currentChance) {
-                                knifeReturning = false; currentChance += volleyInc;
+                            if(Math.random() * 100 < dioReturnChance) {
+                                knifeReturning = false; 
                                 k.material.color.set(0xff0000); document.getElementById('msg').innerText = "REFLECTED!";
                             } else if (k.position.x >= 5) { clearInterval(tLoop); endKnifePhase(false); }
                         }
