@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bizarre Legacy: Judgment</title>
+    <title>Bizarre Legacy: Speed Gap</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: monospace; touch-action: none; -webkit-user-select: none; }
@@ -50,7 +50,7 @@
         const k = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.1), new THREE.MeshStandardMaterial({color: 0xcccccc})); k.visible = false; s.add(k);
         
         let php=100, ehp=100, gOver=false, isTS=false, qteOn=false, rSize=200, qHits=0, diff='', isRetreating=false, knifeActive=false, knifeReturning=false, isPausing=false, isCharging=false;
-        let lastTS = Date.now(), lastKnife = Date.now(), canAttack = true, dioBlockChance = 10, volleyInc = 15, knifeSpeed = 0.35;
+        let lastTS = Date.now(), canAttack = true, dioBlockChance = 10, volleyInc = 15, knifeSpeed = 0.35;
 
         const oraBtn = document.getElementById('oraBtn');
         oraBtn.addEventListener('touchstart', (ev) => { ev.preventDefault(); go(); });
@@ -62,10 +62,9 @@
             document.getElementById('menu').style.display='none';
             document.getElementById('ui').style.display=document.getElementById('ctrl').style.display='block';
             
-            setInterval(eAtk, diff=='easy'?4000 : (diff=='med'?2500:1200));
-            // Knife frequency increased (3.5s)
+            // DIO punch speed: Hard mode is now 0.95s (Your speed is 0.75s)
+            setInterval(eAtk, diff=='easy'?3000 : (diff=='med'?1800:950));
             setInterval(() => { if(!isRetreating && !isTS && !isPausing && !qteOn) knifePhase(); }, 3500);
-            // TS frequency decreased (6s)
             setInterval(() => { if(!gOver && !isTS && !isRetreating && !isPausing && !qteOn && (Date.now() - lastTS > 6000)) qOn(); }, 2000);
         }
 
@@ -87,7 +86,7 @@
         }
         
         function knifePhase() {
-            if(gOver || isTS || isRetreating || qteOn) return;
+            if(gOver || (isTS && document.body.classList.contains('ts-player')) || isRetreating || qteOn) return;
             isRetreating = true; isPausing = true; canAttack = false;
             let currentChance = dioBlockChance; knifeSpeed = 0.35;
             document.getElementById('msg').innerText = "KNIVES!"; e.position.x = 5; oraBtn.disabled = true;
@@ -122,14 +121,14 @@
 
         function eAtk() { 
             if(gOver || isTS || isRetreating || qteOn || isPausing) return; 
-            e.position.x=-1; php-=(diff=='hard'?15:10); upd(); 
+            e.position.x=-1; php-=8; upd(); 
             setTimeout(()=>e.position.x=2,100); 
         }
 
         function qOn() { 
             if(isRetreating || isTS || qteOn) return;
             isPausing = true; isCharging = true;
-            document.getElementById('msg').innerText = "WATCH OUT!";
+            document.getElementById('msg').innerText = "THE WORLD!";
             e.material.emissive.setHex(0xffd700); auraLight.position.set(2, 0, 1); auraLight.intensity = 2;
             setTimeout(() => {
                 isPausing = false; isCharging = false; qteOn=true; qHits=0; rSize=200; 
@@ -158,7 +157,6 @@
                 e.position.x=-1; php-=4; upd(); setTimeout(()=>e.position.x=2,100); h++;
                 if(h>=10){ 
                     clearInterval(l); 
-                    // DIO COMBO: Knife immediately after TS ends
                     setTimeout(() => { if(!gOver) knifePhase(); }, 200);
                     isTS=false; document.body.classList.remove('ts-dio'); canAttack = true; oraBtn.disabled = false; 
                 }
