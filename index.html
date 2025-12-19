@@ -1,45 +1,46 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bizarre Legacy: Absolute Edition</title>
+    <title>Bizarre Legacy: Uncapped Admin</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: monospace; touch-action: none; -webkit-user-select: none; }
-        #menu, #charMenu, #retry { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); background: rgba(0,0,0,0.95); padding: 20px; border: 4px solid gold; text-align: center; color: #fff; z-index: 99; width: 300px; border-radius: 15px; }
+        #menu, #charMenu, #retry { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); background: rgba(0,0,0,0.95); padding: 20px; border: 4px solid gold; text-align: center; color: #fff; z-index: 99; width: 320px; border-radius: 15px; }
         #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: #fff; display: none; pointer-events: none; }
         .bar-bg { width: 120px; height: 12px; border: 2px solid #fff; background: #333; margin: 5px auto; }
         #pBar, #eBar { width: 100%; height: 100%; transition: 0.1s; }
         #pBar { background: #00ff00; } #eBar { background: #ff0000; }
-        #ctrl { position: absolute; bottom: 30px; width: 100%; text-align: center; display: none; }
-        button { padding: 12px; font-size: 14px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; margin: 5px; width: 110px; }
-        #quitBtn { position: absolute; top: 15px; right: 15px; background: #900; color: #fff; width: 80px; padding: 8px; z-index: 100; display: none; border-radius: 5px; border: 2px solid white; }
+        #ctrl { position: absolute; bottom: 20px; width: 100%; text-align: center; display: none; }
+        .btn-row { display: flex; justify-content: center; gap: 5px; margin-bottom: 8px; }
+        button { padding: 12px; font-size: 14px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; color: #fff; min-width: 80px; }
+        #quitBtn { position: absolute; top: 15px; right: 15px; background: #900; color: #fff; width: 80px; padding: 8px; z-index: 100; display: none; border: 2px solid white; }
         .ts-active { filter: invert(1) hue-rotate(180deg); }
         .dmg-popup { position: absolute; color: #ff0; font-weight: bold; font-size: 22px; pointer-events: none; text-shadow: 2px 2px #000; animation: floatUp 0.8s ease-out forwards; z-index: 100; }
-        .stun-text { color: #f00 !important; font-size: 30px !important; }
-        @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-80px) scale(1.2); opacity: 0; } }
+        .stun-text { color: #ff0 !important; font-size: 35px !important; text-shadow: 0 0 10px gold; }
+        @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-100px) scale(1.3); opacity: 0; } }
     </style>
 </head>
 <body>
-    <button id="quitBtn" onclick="quitMatch()">QUIT</button>
+    <button id="quitBtn" onclick="location.reload()">QUIT</button>
 
     <div id="menu">
         <h2 style="color:gold">SELECT MODE</h2>
         <button style="background:#0f0" onclick="setDiff('easy')">EASY</button>
-        <button style="background:#fa0" onclick="setDiff('med')">MEDIUM</button>
-        <button style="background:#f00; color:#fff" onclick="setDiff('hard')">HARD</button>
-        <button style="background:#555; color:#fff; border: 2px solid gold;" onclick="setDiff('dummy')">DUMMY MODE</button>
+        <button style="background:#f00" onclick="setDiff('hard')">HARD</button>
+        <button style="background:#0066ff" onclick="setDiff('move')">FREE MOVE MODE</button>
+        <button style="background:#555; border: 2px solid gold;" onclick="setDiff('dummy')">DUMMY</button>
     </div>
 
     <div id="charMenu" style="display:none">
         <h2 style="color:gold">SELECT STAND</h2>
-        <button style="background:#0066ff;color:#fff" onclick="start('jotaro')">JOTARO</button>
-        <button style="background:#228b22;color:#fff" onclick="start('coco')">COCO JUMBO (ADMIN)</button>
+        <button style="background:#0066ff" onclick="start('jotaro')">JOTARO</button>
+        <button style="background:#228b22" onclick="start('coco')">COCO JUMBO</button>
     </div>
 
     <div id="ui">
         <div style="display:flex;justify-content:space-around">
-            <div id="pName">PLAYER</div><div class="bar-bg"><div id="pBar"></div></div>
-            <div id="eName">DIO</div><div class="bar-bg"><div id="eBar"></div></div>
+            <div>YOU</div><div class="bar-bg"><div id="pBar"></div></div>
+            <div>DIO</div><div class="bar-bg"><div id="eBar"></div></div>
         </div>
         <p id="msg" style="color:gold">FIGHT!</p>
     </div>
@@ -47,31 +48,40 @@
     <div id="retry" style="display:none"><h2 id="st"></h2><button onclick="location.reload()">RETRY</button></div>
 
     <div id="ctrl">
-        <button id="atkBtn" style="background:#00ff00">ATTACK</button>
-        <button id="tsBtn" style="display:none; background:gold">STOP TIME</button>
-        <button id="knfBtn" style="display:none; background:silver">THROW KNIFE</button>
+        <div id="moveCtrls" class="btn-row" style="display:none">
+            <button style="background:#444" onpointerdown="mvL=true" onpointerup="mvL=false">LEFT</button>
+            <button style="background:#444" onpointerdown="mvR=true" onpointerup="mvR=false">RIGHT</button>
+        </div>
+        <div class="btn-row">
+            <button id="atkBtn" style="background:#00ff00">ATTACK</button>
+            <button id="tsBtn" style="display:none; background:gold; color:#000">TIME</button>
+            <button id="knfBtn" style="display:none; background:silver; color:#000">KNIFE</button>
+        </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        // --- 3D ENGINE INITIALIZATION ---
         const s = new THREE.Scene(), c = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000), r = new THREE.WebGLRenderer({antialias:true});
         r.setSize(window.innerWidth, window.innerHeight); document.body.appendChild(r.domElement);
         s.add(new THREE.AmbientLight(0xffffff, 1.0)); c.position.z = 5;
         const p = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0x0066ff})); p.position.x = -2; s.add(p);
         const e = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0xff0000})); e.position.x = 2; s.add(e);
         
-        // --- CORE VARIABLES ---
         let php=100, maxPHP=100, ehp=100, gOver=false, isTS=false, isAdmin=false, diff='', isDummy=false, matchActive=false;
-        let activeKnives = [];
-        let pHits = 0, eHits = 0, pComboDmg = 0, eComboDmg = 0;
-        let pStunned = false, eStunned = false, canAttack = true, pCool = 750;
+        let activeKnives = [], globalKnifePool = 0; 
+        let pHits=0, eHits=0, pComboDmg=0, eComboDmg=0, pStunned=false, eStunned=false, canAttack=true, pCool=750;
+        let isMoveMode=false, mvL=false, mvR=false;
+        const keys = {}; window.onkeydown = (ev) => keys[ev.code] = true; window.onkeyup = (ev) => keys[ev.code] = false;
 
-        function setDiff(m) { diff=m; isDummy=(m==='dummy'); document.getElementById('menu').style.display='none'; document.getElementById('charMenu').style.display='block'; }
+        function setDiff(m) { 
+            diff=m; isDummy=(m==='dummy'); isMoveMode=(m==='move');
+            document.getElementById('menu').style.display='none'; document.getElementById('charMenu').style.display='block'; 
+        }
 
         function start(char) {
             matchActive = true;
             document.getElementById('quitBtn').style.display = 'block';
+            if(isMoveMode) document.getElementById('moveCtrls').style.display = 'flex';
             if(char=='coco'){
                 isAdmin=true; php=1000000; maxPHP=1000000; pCool=10; p.material.color.set(0x228b22);
                 p.scale.set(0.8, 0.4, 0.8); p.position.y = -0.8;
@@ -79,30 +89,11 @@
                 document.getElementById('knfBtn').style.display = 'inline-block';
             } else {
                 isAdmin=false; php=100; maxPHP=100; pCool=750; p.material.color.set(0x0066ff);
-                p.scale.set(1, 1, 1); p.position.y = 0;
-                document.getElementById('tsBtn').style.display = 'none';
-                document.getElementById('knfBtn').style.display = 'none';
             }
-            if(isDummy) { document.getElementById('eName').innerText = "DUMMY"; ehp = 999999; }
-            else { document.getElementById('eName').innerText = "DIO"; ehp = 100; }
-            
+            ehp = isDummy ? 999999 : 100;
             document.getElementById('charMenu').style.display='none';
             document.getElementById('ui').style.display=document.getElementById('ctrl').style.display='block';
             if(!isDummy) runAI();
-        }
-
-        function quitMatch() {
-            matchActive = false; gOver = false; isTS = false;
-            document.body.classList.remove('ts-active');
-            document.getElementById('quitBtn').style.display = 'none';
-            document.getElementById('ui').style.display = 'none';
-            document.getElementById('ctrl').style.display = 'none';
-            document.getElementById('retry').style.display = 'none';
-            document.getElementById('menu').style.display = 'block';
-            activeKnives.forEach(k => s.remove(k.mesh)); activeKnives = [];
-            pHits = 0; eHits = 0; pComboDmg = 0; eComboDmg = 0;
-            pStunned = false; eStunned = false; canAttack = true;
-            document.getElementById('atkBtn').style.opacity = "1";
         }
 
         function showDamage(val, x, color="#ff0", isCombo=false) {
@@ -113,105 +104,100 @@
             div.style.left = (window.innerWidth / 2 + (x * 100)) + 'px';
             div.style.top = '40%'; div.style.color = color;
             document.body.appendChild(div);
-            setTimeout(() => div.remove(), 800);
+            setTimeout(() => div.remove(), 1200);
         }
 
         function applyHit(target, dmg, color) {
-            if(!matchActive) return;
             if(target === 'e') {
                 ehp -= dmg; pComboDmg += dmg; pHits++;
                 if(pHits >= 3) {
-                    eStunned = true; showDamage(pComboDmg, e.position.x, "#ff0", true);
-                    pHits = 0; pComboDmg = 0;
-                    setTimeout(() => eStunned = false, 2000);
-                } else { showDamage(dmg, e.position.x, color); }
-            } else {
-                if(isAdmin) return;
+                    eStunned=true; showDamage(pComboDmg, e.position.x, "#ff0", true); pHits=0; pComboDmg=0;
+                    setTimeout(()=>eStunned=false, 2000);
+                } else showDamage(dmg, e.position.x, color);
+            } else if(!isAdmin) {
                 php -= dmg; eComboDmg += dmg; eHits++;
                 if(eHits >= 3) {
-                    pStunned = true; showDamage(eComboDmg, p.position.x, "#f00", true);
-                    eHits = 0; eComboDmg = 0;
-                    setTimeout(() => pStunned = false, 2000);
-                } else { showDamage(dmg, p.position.x, color); }
+                    pStunned=true; showDamage(eComboDmg, p.position.x, "#f00", true); eHits=0; eComboDmg=0;
+                    setTimeout(()=>pStunned=false, 2000);
+                } else showDamage(dmg, p.position.x, color);
             }
             upd();
         }
 
         document.getElementById('atkBtn').onclick = () => {
-            if(gOver || pStunned || !matchActive || !canAttack) return;
-            canAttack = false;
-            const btn = document.getElementById('atkBtn');
-            if(!isAdmin) btn.style.opacity = "0.4";
-            
-            eHits = 0; eComboDmg = 0; 
-            applyHit('e', isAdmin ? 1000 : 5, isAdmin ? "#0f0" : "#ff0");
-            p.position.x = -1; 
-            setTimeout(()=> {
-                p.position.x=-2;
-                setTimeout(() => { canAttack = true; btn.style.opacity = "1"; }, pCool);
-            }, 70);
+            if(gOver || pStunned || !canAttack || Math.abs(p.position.x - e.position.x) > 1.5) return;
+            canAttack = false; eHits=0; eComboDmg=0;
+            applyHit('e', isAdmin?1000:5, isAdmin?"#0f0":"#ff0");
+            const btn = document.getElementById('atkBtn'); if(!isAdmin) btn.style.opacity="0.4";
+            setTimeout(() => { canAttack=true; btn.style.opacity="1"; }, pCool);
         };
 
         async function runAI() {
             while(matchActive && !gOver) {
-                await new Promise(r => setTimeout(r, Math.random() * 800 + 400));
-                if(isTS || eStunned || isDummy || !matchActive) continue;
-                if(Math.random() < (diff === 'hard' ? 0.7 : 0.3)) dioMelee();
+                await new Promise(r => setTimeout(r, 600));
+                if(isTS || eStunned || isDummy) continue;
+                let dist = Math.abs(e.position.x - p.position.x);
+                if(dist < 1.2) { 
+                    e.position.x = p.position.x + (e.position.x > p.position.x ? 0.5 : -0.5); 
+                    applyHit('p', 8, "#f00"); 
+                    setTimeout(()=>e.position.x += (e.position.x > p.position.x ? 1 : -1), 100); 
+                }
+                else if(isMoveMode) { e.position.x += (p.position.x > e.position.x ? 0.2 : -0.2); }
             }
         }
 
-        function dioMelee() {
-            if(isTS || eStunned || !matchActive) return;
-            e.position.x = 0;
-            applyHit('p', 8, "#f00");
-            pHits = 0; pComboDmg = 0;
-            setTimeout(() => e.position.x = 2, 100);
-        }
-
         document.getElementById('tsBtn').onclick = () => {
-            isTS = !isTS;
-            document.body.classList.toggle('ts-active', isTS);
-            document.getElementById('tsBtn').innerText = isTS ? "RESUME TIME" : "STOP TIME";
+            isTS = !isTS; document.body.classList.toggle('ts-active', isTS);
+            document.getElementById('tsBtn').innerText = isTS ? "RESUME" : "TIME";
         };
 
         document.getElementById('knfBtn').onclick = () => {
             const knf = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.1), new THREE.MeshStandardMaterial({color: 0xcccccc}));
             knf.position.set(p.position.x + 0.5, p.position.y + 0.5, 0);
-            s.add(knf);
-            activeKnives.push({ mesh: knf, launched: !isTS });
+            s.add(knf); activeKnives.push({ mesh: knf, launched: !isTS });
         };
 
         function upd() {
-            if(!matchActive) return;
             if(isDummy && ehp < 1000) ehp = 999999;
             document.getElementById('eBar').style.width = isDummy ? '100%' : Math.max(0, ehp)+'%';
             document.getElementById('pBar').style.width=(php/maxPHP*100)+'%';
-            if(php<=0) { gOver=true; document.getElementById('retry').style.display='block'; document.getElementById('st').innerText="RETIRED"; }
-            if(ehp<=0 && !isDummy) { gOver=true; document.getElementById('retry').style.display='block'; document.getElementById('st').innerText="DIO DEFEATED"; }
+            if(php<=0 || (ehp<=0 && !isDummy)) { gOver=true; document.getElementById('retry').style.display='block'; document.getElementById('st').innerText=php<=0?"RETIRED":"DIO DEFEATED"; }
         }
 
         function animate() {
             requestAnimationFrame(animate);
-            if(matchActive) {
-                let knifeHitsThisFrame = 0;
+            if(matchActive && !gOver) {
+                if(isMoveMode && !pStunned && !isTS) {
+                    if(keys['KeyA'] || keys['ArrowLeft'] || mvL) p.position.x -= 0.08;
+                    if(keys['KeyD'] || keys['ArrowRight'] || mvR) p.position.x += 0.08;
+                }
+
                 for (let i = activeKnives.length - 1; i >= 0; i--) {
-                    let kObj = activeKnives[i];
-                    if (!isTS || kObj.launched) {
-                        kObj.mesh.position.x += 0.4;
-                        if (kObj.mesh.position.x > 1.8 && kObj.mesh.position.x < 2.8) {
-                            let kd = isAdmin ? 500 : 20;
-                            if(isTS) { knifeHitsThisFrame += kd; } 
-                            else { applyHit('e', kd, "#ff0"); }
-                            s.remove(kObj.mesh); activeKnives.splice(i, 1);
-                        } else if(kObj.mesh.position.x > 10) { 
-                            s.remove(kObj.mesh); activeKnives.splice(i, 1); 
+                    let k = activeKnives[i];
+                    if (!isTS || k.launched) {
+                        k.mesh.position.x += 0.5;
+                        if (Math.abs(k.mesh.position.x - e.position.x) < 0.6) {
+                            let d = isAdmin ? 500 : 20;
+                            if(isTS) { 
+                                globalKnifePool += d; // Store unlimited damage
+                            } else { 
+                                applyHit('e', d, "#ff0"); 
+                            }
+                            s.remove(k.mesh);
+                            activeKnives.splice(i, 1);
+                        } else if(k.mesh.position.x > 12) { 
+                            s.remove(k.mesh); 
+                            activeKnives.splice(i, 1); 
                         }
                     }
                 }
-                if(!isTS && knifeHitsThisFrame > 0) {
-                     ehp -= knifeHitsThisFrame; // NO CAP
-                     showDamage(knifeHitsThisFrame, e.position.x, "#0f0", true);
-                     upd();
+
+                // If time resumed and we have stored damage, blast it all now
+                if(!isTS && globalKnifePool > 0) {
+                    ehp -= globalKnifePool;
+                    showDamage(globalKnifePool, e.position.x, "#ff0", true);
+                    globalKnifePool = 0; // Reset pool
+                    upd();
                 }
             }
             r.render(s, c);
