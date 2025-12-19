@@ -1,11 +1,12 @@
+
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bizarre Legacy: Overdrive</title>
+    <title>Bizarre Legacy: Jotaro Overdrive</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: monospace; touch-action: none; -webkit-user-select: none; }
-        #menu, #charMenu, #retry { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); background: rgba(0,0,0,0.95); padding: 20px; border: 4px solid gold; text-align: center; color: #fff; z-index: 99; width: 300px; border-radius: 15px; }
+        #menu, #retry { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); background: rgba(0,0,0,0.9); padding: 20px; border: 4px solid gold; text-align: center; color: #fff; z-index: 99; width: 280px; border-radius: 15px; }
         #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: #fff; display: none; pointer-events: none; }
         .bar-bg { width: 120px; height: 12px; border: 2px solid #fff; background: #333; margin: 5px auto; }
         #pBar, #eBar { width: 100%; height: 100%; transition: 0.1s; }
@@ -14,35 +15,29 @@
         #t-circ { width: 80px; height: 80px; border: 4px solid #fff; border-radius: 50%; position: absolute; transform: translate(-50%,-50%); }
         #r-circ { width: 200px; height: 200px; border: 4px solid gold; border-radius: 50%; position: absolute; transform: translate(-50%,-50%); }
         #ctrl { position: absolute; bottom: 30px; width: 100%; text-align: center; display: none; }
-        button { padding: 12px; font-size: 16px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; margin: 5px; width: 90%; }
-        #oraBtn { background: #0066ff; color: #fff; width: 150px; }
-        #oraBtn:disabled { background: #222 !important; opacity: 0.7; }
+        button { padding: 15px 30px; font-size: 18px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; margin: 5px; width: 150px; }
+        #oraBtn { background: #0066ff; color: #fff; }
+        #oraBtn:disabled { background: #222 !important; color: #666; opacity: 0.7; }
         .ts-player { filter: hue-rotate(260deg); } .ts-dio { filter: invert(1); }
     </style>
 </head>
 <body>
     <div id="menu">
         <h2 style="color:gold">DIFFICULTY</h2>
-        <button style="background:#0f0" onclick="setDiff('easy')">EASY</button>
-        <button style="background:#fa0" onclick="setDiff('med')">MEDIUM</button>
-        <button style="background:#f00; color:#fff" onclick="setDiff('hard')">HARD</button>
-    </div>
-    <div id="charMenu" style="display:none">
-        <h2 style="color:gold">CHARACTER</h2>
-        <button style="background:#0066ff;color:#fff" onclick="start('jotaro')">JOTARO</button>
-        <button style="background:#ccc;color:#000" onclick="start('pol')">POLNAREFF</button>
-        <button style="background:#444;color:#fff" onclick="start('oku')">OKUYASU</button>
+        <button style="background:#0f0; width:80%" onclick="start('easy')">EASY</button>
+        <button style="background:#fa0; width:80%" onclick="start('med')">MEDIUM</button>
+        <button style="background:#f00; color:#fff; width:80%" onclick="start('hard')">HARD</button>
     </div>
     <div id="ui">
         <div style="display:flex;justify-content:space-around">
-            <div id="pName">JOTARO</div><div class="bar-bg"><div id="pBar"></div></div>
-            <div>DIO</div><div class="bar-bg"><div id="eBar"></div></div>
+            <div>JOTARO<div class="bar-bg"><div id="pBar"></div></div></div>
+            <div>DIO<div class="bar-bg"><div id="eBar"></div></div></div>
         </div>
-        <p id="msg" style="color:gold;font-size:18px">SURVIVE!</p>
+        <p id="msg" style="color:gold;font-size:18px">THE FINAL STAND</p>
     </div>
     <div id="qte"><div id="t-circ"></div><div id="r-circ"></div></div>
     <div id="retry" style="display:none"><h2 id="st"></h2><button onclick="location.reload()">RETRY</button></div>
-    <div id="ctrl"><button id="oraBtn">ATTACK!</button></div>
+    <div id="ctrl"><button id="oraBtn">ORA!</button></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
@@ -55,34 +50,23 @@
         const e = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0xff0000})); e.position.x = 2; s.add(e);
         const k = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.1), new THREE.MeshStandardMaterial({color: 0xcccccc})); k.visible = false; s.add(k);
         
-        let php=100, ehp=100, gOver=false, isTS=false, qteOn=false, rSize=200, qHits=0, diff='', curChar='', isRetreating=false, knifeActive=false, knifeReturning=false, isPausing=false, isCharging=false;
-        let lastTS = Date.now(), canAttack = true, dioBlockChance = 10, volleyInc = 15, knifeSpeed = 0.35, pDmg=5, pCool=750;
-
-        function setDiff(m) { diff=m; document.getElementById('menu').style.display='none'; document.getElementById('charMenu').style.display='block'; }
-
-        function start(char) {
-            curChar = char;
-            if(char=='jotaro'){ php=100; pDmg=5; pCool=750; p.material.color.set(0x0066ff); document.getElementById('pName').innerText="JOTARO"; }
-            if(char=='pol'){ php=80; pDmg=3; pCool=300; p.material.color.set(0xcccccc); document.getElementById('pName').innerText="POLNAREFF"; }
-            if(char=='oku'){ php=150; pDmg=12; pCool=1300; p.material.color.set(0x444444); document.getElementById('pName').innerText="OKUYASU"; }
-            
-            if(diff=='easy'){ dioBlockChance=10; volleyInc=10; }
-            else if(diff=='med'){ dioBlockChance=20; volleyInc=15; }
-            else { dioBlockChance=30; volleyInc=25; }
-
-            document.getElementById('charMenu').style.display='none';
-            document.getElementById('ui').style.display=document.getElementById('ctrl').style.display='block';
-            
-            // DIO ATTACK SPEED INCREASED
-            setInterval(eAtk, diff=='easy'?4000 : (diff=='med'?2500:1200));
-            // KNIFES EVERY 4 SECONDS
-            setInterval(() => { if(!isRetreating && !isTS && !isPausing && !qteOn) knifePhase(); }, 4000);
-            // TIME STOP EVERY 3.5 SECONDS
-            setInterval(() => { if(!gOver && !isTS && !isRetreating && !isPausing && !qteOn && (Date.now() - lastTS > 3500)) qOn(); }, 2000);
-        }
+        let php=100, ehp=100, gOver=false, isTS=false, qteOn=false, rSize=200, qHits=0, diff='', isRetreating=false, knifeActive=false, knifeReturning=false, isPausing=false, isCharging=false;
+        let lastTS = Date.now(), canAttack = true, dioBlockChance = 10, volleyInc = 15, knifeSpeed = 0.35;
 
         const oraBtn = document.getElementById('oraBtn');
         oraBtn.addEventListener('touchstart', (ev) => { ev.preventDefault(); go(); });
+
+        function start(m) {
+            diff=m; 
+            if(diff=='easy'){ dioBlockChance=10; volleyInc=10; }
+            else if(diff=='med'){ dioBlockChance=20; volleyInc=15; }
+            else { dioBlockChance=30; volleyInc=25; }
+            document.getElementById('menu').style.display='none';
+            document.getElementById('ui').style.display=document.getElementById('ctrl').style.display='block';
+            setInterval(eAtk, diff=='easy'?4000 : (diff=='med'?2500:1200));
+            setInterval(() => { if(!isRetreating && !isTS && !isPausing && !qteOn) knifePhase(); }, 4000);
+            setInterval(() => { if(!gOver && !isTS && !isRetreating && !isPausing && !qteOn && (Date.now() - lastTS > 3500)) qOn(); }, 2000);
+        }
 
         function go() { 
             if(gOver) return;
@@ -92,15 +76,13 @@
                     document.getElementById('msg').innerText = "PARRIED!!"; knifeSpeed += 0.08;
                 } return;
             }
-            // TS DAMAGE AT 0.5
             if(isTS && document.body.classList.contains('ts-player')) { ehp -= 0.5; upd(); p.position.x = 1; setTimeout(()=>p.position.x=-2, 50); return; }
             if(!canAttack || isTS || isRetreating || qteOn) { if(qteOn) qHit(); return; }
             if(isPausing && !isCharging) return; 
-
             canAttack = false; oraBtn.disabled = true;
-            ehp -= (isCharging ? 2 : pDmg); upd();
+            ehp -= (isCharging ? 2 : 5); upd();
             p.position.x = 1; setTimeout(()=>p.position.x=-2, 100);
-            setTimeout(() => { if(!gOver && !isRetreating && !isTS && !qteOn) { canAttack = true; oraBtn.disabled = false; } else { canAttack = true; } }, pCool); 
+            setTimeout(() => { if(!gOver && !isRetreating && !isTS && !qteOn) { canAttack = true; oraBtn.disabled = false; } else { canAttack = true; } }, 750); 
         }
         
         function knifePhase() {
@@ -146,7 +128,7 @@
         function qOn() { 
             if(isRetreating || isTS || qteOn) return;
             isPausing = true; isCharging = true;
-            document.getElementById('msg').innerText = "THE WORLD!";
+            document.getElementById('msg').innerText = "WATCH OUT!";
             e.material.emissive.setHex(0xffd700); auraLight.position.set(2, 0, 1); auraLight.intensity = 2;
             setTimeout(() => {
                 isPausing = false; isCharging = false; qteOn=true; qHits=0; rSize=200; 
