@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bizarre Legacy: Balanced QTE</title>
+    <title>Bizarre Legacy: Aggressive DIO</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: monospace; touch-action: none; -webkit-user-select: none; }
@@ -33,7 +33,7 @@
             <div>JOTARO<div class="bar-bg"><div id="pBar"></div></div></div>
             <div>DIO<div class="bar-bg"><div id="eBar"></div></div></div>
         </div>
-        <p id="msg" style="color:gold;font-size:18px">SURVIVE</p>
+        <p id="msg" style="color:gold;font-size:18px">SURVIVE THE ONSLAUGHT</p>
     </div>
     <div id="qte"><div id="t-circ"></div><div id="r-circ"></div></div>
     <div id="retry" style="display:none"><h2 id="st"></h2><button onclick="location.reload()">RETRY</button></div>
@@ -62,9 +62,15 @@
         function start(m) {
             diff=m; document.getElementById('menu').style.display='none';
             document.getElementById('ui').style.display=document.getElementById('ctrl').style.display='block';
-            setInterval(eAtk, diff=='easy'?8000 : (diff=='med'?5000:3000));
-            setInterval(() => { if(!isRetreating && !isTS && !isPausing && !qteOn) knifePhase(); }, 9000);
-            setInterval(() => { if(!gOver && !isTS && !isRetreating && !isPausing && !qteOn && (Date.now() - lastTS > 7000)) qOn(); }, 3000);
+            
+            // DIO Basic Attack Speed Increased
+            setInterval(eAtk, diff=='easy'?6000 : (diff=='med'?3500:2000));
+            
+            // Knife Phase every 6 seconds
+            setInterval(() => { if(!isRetreating && !isTS && !isPausing && !qteOn) knifePhase(); }, 6000);
+            
+            // Time Stop every 5 seconds
+            setInterval(() => { if(!gOver && !isTS && !isRetreating && !isPausing && !qteOn && (Date.now() - lastTS > 5000)) qOn(); }, 2500);
         }
 
         function go() { 
@@ -95,7 +101,7 @@
         }
         
         function knifePhase() {
-            if(gOver || isTS || isRetreating) return;
+            if(gOver || isTS || isRetreating || qteOn) return;
             isRetreating = true; isPausing = true; canAttack = false;
             document.getElementById('msg').innerText = "DIO PREPARES...";
             e.position.x = 5; oraBtn.disabled = true;
@@ -107,14 +113,14 @@
                 const tLoop = setInterval(() => {
                     if(gOver || isTS) { clearInterval(tLoop); k.visible=false; return; }
                     if(!knifeReturning) {
-                        k.position.x -= 0.28; 
+                        k.position.x -= 0.30; // Slightly faster knife
                         if(k.position.x <= -2.5) { clearInterval(tLoop); endKnifePhase(true); }
                     } else {
                         k.position.x += 0.6; 
                         if(k.position.x >= 5) { clearInterval(tLoop); endKnifePhase(false); }
                     }
                 }, 20);
-            }, 1000); 
+            }, 800); 
         }
 
         function endKnifePhase(hitPlayer) {
@@ -132,7 +138,7 @@
         }
 
         function qOn() { 
-            if(isRetreating || isTS) return;
+            if(isRetreating || isTS || qteOn) return;
             isPausing = true; isCharging = true;
             document.getElementById('msg').innerText = "HE'S CHARGING!";
             e.material.emissive.setHex(0xffd700); 
@@ -144,11 +150,10 @@
                 e.material.emissive.setHex(0x000000); 
                 auraLight.intensity = 0;
                 document.getElementById('qte').style.display='block';
-            }, 1200); // 0.2s longer charge time
+            }, 1000); 
         }
 
         function qHit() { 
-            // SUCCESS ZONE: Widened to 65-105 (was 70-95)
             if(rSize>65 && rSize<105){ 
                 qHits++; rSize=200; 
                 if(qHits>=3){ qteOn=false; document.getElementById('qte').style.display='none'; playerTS(); }
@@ -185,7 +190,6 @@
         function animate() { 
             requestAnimationFrame(animate); 
             if(qteOn){ 
-                // SHRINK SPEED: Reduced from 3.8/3.0 to 2.8/2.2
                 rSize -= (diff=='hard'? 2.8 : 2.2);
                 if(rSize<40) rSize=200; 
                 document.getElementById('r-circ').style.width=document.getElementById('r-circ').style.height=rSize+'px'; 
