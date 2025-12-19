@@ -16,8 +16,12 @@
         #target-circle { width: 80px; height: 80px; border: 4px solid white; border-radius: 50%; position: absolute; top: 0; left: 0; }
         #expanding-ring { width: 200px; height: 200px; border: 4px solid gold; border-radius: 50%; position: absolute; top: -60px; left: -60px; }
         
+        /* Retry Screen */
+        #retry-screen { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); padding: 50px; border: 5px solid gold; text-align: center; display: none; z-index: 1000; color: white; border-radius: 20px; }
+        .retry-btn { background: gold; color: black; padding: 20px 40px; font-size: 24px; cursor: pointer; border: none; font-weight: bold; margin-top: 20px; border-radius: 10px; }
+
         #controls { position: absolute; bottom: 40px; width: 100%; text-align: center; }
-        button { background: #ff0055; color: white; padding: 20px 40px; font-size: 24px; border-radius: 10px; border: 4px solid white; font-weight: bold; }
+        button#mainBtn { background: #ff0055; color: white; padding: 20px 40px; font-size: 24px; border-radius: 10px; border: 4px solid white; font-weight: bold; }
         .timestop-active { filter: invert(1) grayscale(1); }
     </style>
 </head>
@@ -33,6 +37,11 @@
     <div id="qte-container">
         <div id="target-circle"></div>
         <div id="expanding-ring"></div>
+    </div>
+
+    <div id="retry-screen">
+        <h1 id="end-status">GAME OVER</h1>
+        <button class="retry-btn" onclick="restartGame()">RETRY BATTLE</button>
     </div>
 
     <div id="controls">
@@ -54,6 +63,7 @@
         let qteActive = false;
         let qteSuccesses = 0;
         let ringSize = 200;
+        let gameOver = false;
 
         const player = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({ color: 0x0066ff }));
         player.position.x = -2; scene.add(player);
@@ -61,7 +71,7 @@
         enemy.position.x = 2; scene.add(enemy);
 
         function handleClick() {
-            if (isTimeStopped) return;
+            if (gameOver || isTimeStopped) return;
             if (qteActive) {
                 checkQTE();
             } else {
@@ -77,6 +87,7 @@
         }
 
         function startQTE() {
+            if (gameOver) return;
             qteActive = true;
             qteSuccesses = 0;
             document.getElementById('qte-container').style.display = 'block';
@@ -85,14 +96,11 @@
         }
 
         function checkQTE() {
-            // Ring size 80 is the perfect hit
             if (ringSize > 70 && ringSize < 95) {
                 qteSuccesses++;
                 document.getElementById('log').innerText = "PERFECT! (" + qteSuccesses + "/3)";
-                ringSize = 200; // Reset for next ring
-                if (qteSuccesses >= 3) {
-                    endQTE(true);
-                }
+                ringSize = 200;
+                if (qteSuccesses >= 3) endQTE(true);
             } else {
                 endQTE(false);
             }
@@ -113,9 +121,9 @@
             document.body.classList.add('timestop-active');
             document.getElementById('log').innerText = "ZA WARUDO!!";
             
-            // Dio attacks for 9 seconds
             let attacks = 0;
             const interval = setInterval(() => {
+                if (gameOver) { clearInterval(interval); return; }
                 enemy.position.x = -1;
                 pHP -= 4;
                 updateUI();
@@ -131,18 +139,34 @@
         }
 
         function updateUI() {
-            document.getElementById('playerHealth').style.width = pHP + "%";
-            document.getElementById('enemyHealth').style.width = eHP + "%";
+            document.getElementById('playerHealth').style.width = Math.max(0, pHP) + "%";
+            document.getElementById('enemyHealth').style.width = Math.max(0, eHP) + "%";
+            
+            if (pHP <= 0 || eHP <= 0) {
+                endGame();
+            }
         }
 
-        // Run QTE every 15 seconds
-        setInterval(() => { if(!isTimeStopped) startQTE(); }, 15000);
+        function endGame() {
+            gameOver = true;
+            document.getElementById('qte-container').style.display = 'none';
+            document.getElementById('mainBtn').style.display = 'none';
+            document.getElementById('retry-screen').style.display = 'block';
+            document.getElementById('end-status').innerText = pHP <= 0 ? "YOU WERE RETIRED" : "DIO DEFEATED!";
+            document.getElementById('log').innerText = "BATTLE OVER";
+        }
+
+        function restartGame() {
+            location.reload();
+        }
+
+        setInterval(() => { if(!isTimeStopped && !gameOver) startQTE(); }, 15000);
 
         function animate() {
             requestAnimationFrame(animate);
             if (qteActive) {
-                ringSize -= 2;
-                if (ringSize < 40) ringSize = 200; // Loop ring
+                ringSize -= 2.5;
+                if (ringSize < 40) ringSize = 200;
                 document.getElementById('expanding-ring').style.width = ringSize + "px";
                 document.getElementById('expanding-ring').style.height = ringSize + "px";
                 document.getElementById('expanding-ring').style.top = (40 - ringSize/2) + "px";
