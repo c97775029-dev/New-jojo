@@ -2,30 +2,53 @@
 <html>
 <head>
     <title>Bizarre Legacy: The World</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
-        body { margin: 0; overflow: hidden; background: #111; font-family: 'Courier New', monospace; }
-        #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: white; pointer-events: none; }
-        .health-container { display: flex; justify-content: space-around; padding: 20px; }
-        .bar { width: 150px; height: 15px; border: 2px solid #fff; background: #333; }
+        body { margin: 0; overflow: hidden; background: #111; font-family: 'Courier New', monospace; touch-action: manipulation; }
+        
+        /* The Difficulty Menu - MUST SHOW FIRST */
+        #start-menu { 
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            background: rgba(0,0,0,0.95); padding: 30px; border: 5px solid gold; 
+            text-align: center; color: white; border-radius: 20px; z-index: 9999; width: 80%; max-width: 400px;
+        }
+        
+        .btn { padding: 15px; font-size: 18px; cursor: pointer; border: none; font-weight: bold; margin: 10px 0; border-radius: 10px; width: 100%; display: block; }
+        .easy-btn { background: #00ff00; color: black; }
+        .med-btn { background: #ffaa00; color: black; }
+        .hard-btn { background: #ff0000; color: white; }
+
+        /* Game UI */
+        #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: white; pointer-events: none; display: none; }
+        .health-container { display: flex; justify-content: space-around; padding: 10px; }
+        .bar { width: 120px; height: 15px; border: 2px solid #fff; background: #333; }
         #playerHealth { width: 100%; height: 100%; background: #00ff00; transition: 0.3s; }
         #enemyHealth { width: 100%; height: 100%; background: #ff0000; transition: 0.3s; }
-        #log { font-size: 28px; font-weight: bold; color: gold; text-shadow: 2px 2px #000; }
+        #log { font-size: 20px; font-weight: bold; color: gold; text-shadow: 2px 2px #000; margin-top: 5px; }
         
-        /* QTE Ring Styling */
-        #qte-container { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: none; }
-        #target-circle { width: 80px; height: 80px; border: 4px solid white; border-radius: 50%; position: absolute; top: 0; left: 0; }
-        #expanding-ring { width: 200px; height: 200px; border: 4px solid gold; border-radius: 50%; position: absolute; top: -60px; left: -60px; }
+        /* QTE Ring */
+        #qte-container { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: none; z-index: 500; }
+        #target-circle { width: 80px; height: 80px; border: 4px solid white; border-radius: 50%; position: absolute; top: -40px; left: -40px; }
+        #expanding-ring { width: 200px; height: 200px; border: 4px solid gold; border-radius: 50%; position: absolute; top: -100px; left: -100px; }
         
         /* Retry Screen */
-        #retry-screen { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); padding: 50px; border: 5px solid gold; text-align: center; display: none; z-index: 1000; color: white; border-radius: 20px; }
-        .retry-btn { background: gold; color: black; padding: 20px 40px; font-size: 24px; cursor: pointer; border: none; font-weight: bold; margin-top: 20px; border-radius: 10px; }
+        #retry-screen { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); padding: 40px; border: 5px solid gold; text-align: center; display: none; z-index: 10000; color: white; border-radius: 20px; }
 
-        #controls { position: absolute; bottom: 40px; width: 100%; text-align: center; }
+        #controls { position: absolute; bottom: 40px; width: 100%; text-align: center; display: none; }
         button#mainBtn { background: #ff0055; color: white; padding: 20px 40px; font-size: 24px; border-radius: 10px; border: 4px solid white; font-weight: bold; }
         .timestop-active { filter: invert(1) grayscale(1); }
     </style>
 </head>
 <body>
+
+    <div id="start-menu">
+        <h2 style="color: gold; margin-top: 0;">BIZARRE LEGACY</h2>
+        <p>CHOOSE DIFFICULTY</p>
+        <button class="btn easy-btn" onclick="startGame('easy')">EASY</button>
+        <button class="btn med-btn" onclick="startGame('med')">MEDIUM</button>
+        <button class="btn hard-btn" onclick="startGame('hard')">HARD</button>
+    </div>
+
     <div id="ui">
         <div class="health-container">
             <div>JO-STAR<div class="bar"><div id="playerHealth"></div></div></div>
@@ -41,7 +64,7 @@
 
     <div id="retry-screen">
         <h1 id="end-status">GAME OVER</h1>
-        <button class="retry-btn" onclick="restartGame()">RETRY BATTLE</button>
+        <button class="btn med-btn" onclick="location.reload()">RETRY BATTLE</button>
     </div>
 
     <div id="controls">
@@ -55,44 +78,72 @@
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
-        scene.add(new THREE.AmbientLight(0x404040));
+        scene.add(new THREE.AmbientLight(0x606060));
         camera.position.z = 6;
 
-        let pHP = 100, eHP = 100;
-        let isTimeStopped = false;
-        let qteActive = false;
-        let qteSuccesses = 0;
-        let ringSize = 200;
-        let gameOver = false;
+        let pHP = 100, eHP = 100, gameOver = false, isTimeStopped = false, qteActive = false;
+        let ringSize = 200, qteSuccesses = 0, diff = 'easy', tsUsed = 0, lastTsTime = 0;
 
         const player = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({ color: 0x0066ff }));
         player.position.x = -2; scene.add(player);
         const enemy = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({ color: 0xff0000 }));
         enemy.position.x = 2; scene.add(enemy);
 
+        function startGame(mode) {
+            diff = mode;
+            document.getElementById('start-menu').style.display = 'none';
+            document.getElementById('ui').style.display = 'block';
+            document.getElementById('controls').style.display = 'block';
+            
+            // 1. Enemy Normal Attack Interval
+            let attackSpeed = (diff === 'easy') ? 10000 : (diff === 'med' ? 5000 : 3000);
+            setInterval(enemyNormalAttack, attackSpeed);
+            
+            // 2. Regeneration (Medium & Hard: 1/4 HP every 10s)
+            if(diff !== 'easy') {
+                setInterval(() => {
+                    if(!gameOver && !isTimeStopped && eHP < 100) {
+                        eHP = Math.min(100, eHP + 25);
+                        document.getElementById('log').innerText = "DIO REGENERATED!";
+                        updateUI();
+                    }
+                }, 10000);
+            }
+            
+            // 3. Time Stop Trigger Loop (Checks every 5s)
+            setInterval(() => {
+                let now = Date.now();
+                let cdReady = (now - lastTsTime) > 20000;
+                if(!gameOver && !isTimeStopped) {
+                    if(diff === 'easy' && tsUsed < 1) startQTE();
+                    else if(diff !== 'easy' && cdReady) startQTE();
+                }
+            }, 5000);
+        }
+
         function handleClick() {
             if (gameOver || isTimeStopped) return;
-            if (qteActive) {
-                checkQTE();
-            } else {
-                playerAttack();
-            }
+            if (qteActive) checkQTE(); else playerAttack();
         }
 
         function playerAttack() {
-            player.position.x = 1;
-            eHP -= 5;
-            updateUI();
+            player.position.x = 1; eHP -= 5; updateUI();
             setTimeout(() => player.position.x = -2, 100);
         }
 
+        function enemyNormalAttack() {
+            if (gameOver || isTimeStopped) return;
+            enemy.position.x = -1;
+            pHP -= (diff === 'hard' ? 12 : 8); // Hard mode hits slightly harder
+            document.getElementById('log').innerText = "MUDA!";
+            updateUI();
+            setTimeout(() => enemy.position.x = 2, 100);
+        }
+
         function startQTE() {
-            if (gameOver) return;
-            qteActive = true;
-            qteSuccesses = 0;
+            qteActive = true; qteSuccesses = 0; ringSize = 200;
             document.getElementById('qte-container').style.display = 'block';
             document.getElementById('log').innerText = "DODGE THE TIME STOP!";
-            ringSize = 200;
         }
 
         function checkQTE() {
@@ -100,38 +151,28 @@
                 qteSuccesses++;
                 document.getElementById('log').innerText = "PERFECT! (" + qteSuccesses + "/3)";
                 ringSize = 200;
-                if (qteSuccesses >= 3) endQTE(true);
+                if (qteSuccesses >= 3) {
+                    qteActive = false; document.getElementById('qte-container').style.display = 'none';
+                    document.getElementById('log').innerText = "YOU DODGED IT!";
+                }
             } else {
-                endQTE(false);
-            }
-        }
-
-        function endQTE(success) {
-            qteActive = false;
-            document.getElementById('qte-container').style.display = 'none';
-            if (success) {
-                document.getElementById('log').innerText = "YOU DODGED IT!";
-            } else {
+                qteActive = false; document.getElementById('qte-container').style.display = 'none';
                 startTimeStop();
             }
         }
 
         function startTimeStop() {
-            isTimeStopped = true;
+            isTimeStopped = true; tsUsed++; lastTsTime = Date.now();
             document.body.classList.add('timestop-active');
             document.getElementById('log').innerText = "ZA WARUDO!!";
-            
-            let attacks = 0;
-            const interval = setInterval(() => {
-                if (gameOver) { clearInterval(interval); return; }
-                enemy.position.x = -1;
-                pHP -= 4;
-                updateUI();
+            let hits = 0;
+            const tsLoop = setInterval(() => {
+                if (gameOver) { clearInterval(tsLoop); return; }
+                enemy.position.x = -1; pHP -= 4; updateUI();
                 setTimeout(() => enemy.position.x = 2, 100);
-                attacks++;
-                if (attacks >= 9) {
-                    clearInterval(interval);
-                    isTimeStopped = false;
+                hits++;
+                if (hits >= 9) {
+                    clearInterval(tsLoop); isTimeStopped = false;
                     document.body.classList.remove('timestop-active');
                     document.getElementById('log').innerText = "TIME RESUMES...";
                 }
@@ -141,36 +182,23 @@
         function updateUI() {
             document.getElementById('playerHealth').style.width = Math.max(0, pHP) + "%";
             document.getElementById('enemyHealth').style.width = Math.max(0, eHP) + "%";
-            
-            if (pHP <= 0 || eHP <= 0) {
-                endGame();
-            }
+            if (pHP <= 0 || eHP <= 0) endGame();
         }
 
         function endGame() {
             gameOver = true;
-            document.getElementById('qte-container').style.display = 'none';
             document.getElementById('mainBtn').style.display = 'none';
             document.getElementById('retry-screen').style.display = 'block';
             document.getElementById('end-status').innerText = pHP <= 0 ? "YOU WERE RETIRED" : "DIO DEFEATED!";
-            document.getElementById('log').innerText = "BATTLE OVER";
         }
-
-        function restartGame() {
-            location.reload();
-        }
-
-        setInterval(() => { if(!isTimeStopped && !gameOver) startQTE(); }, 15000);
 
         function animate() {
             requestAnimationFrame(animate);
             if (qteActive) {
-                ringSize -= 2.5;
-                if (ringSize < 40) ringSize = 200;
-                document.getElementById('expanding-ring').style.width = ringSize + "px";
-                document.getElementById('expanding-ring').style.height = ringSize + "px";
-                document.getElementById('expanding-ring').style.top = (40 - ringSize/2) + "px";
-                document.getElementById('expanding-ring').style.left = (40 - ringSize/2) + "px";
+                ringSize -= 2.5; if (ringSize < 40) ringSize = 200;
+                const ring = document.getElementById('expanding-ring');
+                ring.style.width = ringSize + "px"; ring.style.height = ringSize + "px";
+                ring.style.top = -(ringSize/2) + "px"; ring.style.left = -(ringSize/2) + "px";
             }
             renderer.render(scene, camera);
         }
