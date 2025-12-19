@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bizarre Legacy: Refined Duel</title>
+    <title>Bizarre Legacy: Precision Duel</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: monospace; touch-action: none; -webkit-user-select: none; }
@@ -50,14 +50,14 @@
         const k = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.1), new THREE.MeshStandardMaterial({color: 0xcccccc})); k.visible = false; s.add(k);
         
         let php=100, ehp=100, gOver=false, isTS=false, qteOn=false, rSize=200, qHits=0, diff='', isRetreating=false, knifeActive=false, knifeReturning=false, isPausing=false, isCharging=false;
-        let lastTS = Date.now(), canAttack = true, dioReturnChance = 40, knifeSpeed = 0.3;
+        let lastTS = Date.now(), canAttack = true, dioReturnChance = 30, knifeSpeed = 0.3;
 
         const oraBtn = document.getElementById('oraBtn');
         oraBtn.addEventListener('touchstart', (ev) => { ev.preventDefault(); go(); });
 
         function start(m) {
             diff = m; 
-            dioReturnChance = (m=='easy') ? 10 : (m=='med' ? 25 : 40);
+            dioReturnChance = (m=='easy') ? 0 : (m=='med' ? 15 : 30);
             document.getElementById('menu').style.display='none';
             document.getElementById('ui').style.display=document.getElementById('ctrl').style.display='block';
             
@@ -68,7 +68,6 @@
 
         function go() { 
             if(gOver) return;
-            // EASIER HIT DETECTION: Knife is parryable from x = -0.2 down to -2.2 (much wider window)
             if(knifeActive && !knifeReturning) {
                 if(k.position.x < -0.2 && k.position.x > -2.2) {
                     knifeReturning = true; k.material.color.set(0xffd700);
@@ -87,7 +86,7 @@
         function knifePhase() {
             if(gOver || (isTS && document.body.classList.contains('ts-player')) || isRetreating || qteOn) return;
             isRetreating = true; isPausing = true; canAttack = false;
-            knifeSpeed = 0.3; // Slower base speed
+            knifeSpeed = 0.3;
             document.getElementById('msg').innerText = "KNIVES!"; e.position.x = 5; oraBtn.disabled = true;
             setTimeout(() => {
                 isPausing = false; knifeActive = true; knifeReturning = false;
@@ -100,11 +99,17 @@
                         if(k.position.x <= -2.5) { clearInterval(tLoop); endKnifePhase(true); }
                     } else {
                         k.position.x += (knifeSpeed * 1.5); 
-                        if(k.position.x >= 2.0 && knifeReturning) {
+                        // SMALLER DIO HITBOX: He must hit it between x=2.0 and 2.5 (very narrow range)
+                        if(k.position.x >= 2.0 && k.position.x <= 2.5 && knifeReturning) {
                             if(Math.random() * 100 < dioReturnChance) {
                                 knifeReturning = false; 
                                 k.material.color.set(0xff0000); document.getElementById('msg').innerText = "REFLECTED!";
-                            } else if (k.position.x >= 5) { clearInterval(tLoop); endKnifePhase(false); }
+                            } else {
+                                // DIO missed his narrow window
+                                clearInterval(tLoop); endKnifePhase(false);
+                            }
+                        } else if (k.position.x > 2.5) { // If it flew past his hitbox
+                            clearInterval(tLoop); endKnifePhase(false);
                         }
                     }
                 }, 20);
