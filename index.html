@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bizarre Legacy: 3-Second Defiance</title>
+    <title>Bizarre Legacy: Balanced Tides</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: monospace; touch-action: none; -webkit-user-select: none; }
@@ -30,15 +30,15 @@
 
     <div id="mashUI">
         <h1 id="timerTxt" style="color:red; font-size: 50px; margin:0;">3.0s</h1>
-        <h2 style="color:cyan; margin: 10px 0;">MASH ANYWHERE!</h2>
+        <h2 id="mashSub" style="color:cyan; margin: 10px 0;">MASH ANYWHERE!</h2>
         <div class="bar-bg" style="width:240px; height:20px;"><div id="mBar" style="width:0%; background:cyan; height:100%; box-shadow: 0 0 15px cyan;"></div></div>
     </div>
 
     <div id="menu">
-        <h2 style="color:gold">SELECT MODE</h2>
-        <button style="background:#0f0" onclick="setDiff('easy')">EASY</button>
-        <button style="background:#fa0; color:#000" onclick="setDiff('med')">MEDIUM</button>
-        <button style="background:#f00" onclick="setDiff('hard')">HARD</button>
+        <h2 style="color:gold">SELECT DIFFICULTY</h2>
+        <button style="background:#0f0" onclick="setDiff('easy')">EASY (Chill)</button>
+        <button style="background:#fa0; color:#000" onclick="setDiff('med')">MEDIUM (Normal)</button>
+        <button style="background:#f00" onclick="setDiff('hard')">HARD (Avalon)</button>
         <button style="background:#555; border: 2px solid gold;" onclick="setDiff('dummy')">DUMMY</button>
     </div>
 
@@ -53,7 +53,7 @@
             <div>YOU</div><div class="bar-bg"><div id="pBar"></div></div>
             <div>DIO</div><div class="bar-bg"><div id="eBar"></div></div>
         </div>
-        <p id="msg" style="color:gold">MASH TO RESIST</p>
+        <p id="msg" style="color:gold">FIGHT!</p>
     </div>
 
     <div id="retry" style="display:none"><h2 id="st"></h2><button onclick="location.reload()">RETRY</button></div>
@@ -71,28 +71,39 @@
         r.setSize(window.innerWidth, window.innerHeight); document.body.appendChild(r.domElement);
         s.add(new THREE.AmbientLight(0xffffff, 1.2)); c.position.z = 7;
         
-        const p = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0x0066ff, transparent: true})); p.position.x = -3.5; s.add(p);
-        const e = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0xff0000, transparent: true})); e.position.x = 4; s.add(e);
+        const p = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0x0066ff})); p.position.x = -3.5; s.add(p);
+        const e = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0xff0000})); e.position.x = 4; s.add(e);
         
-        let php=100, maxPHP=100, ehp=100, gOver=false, isTS=false, dioTS=false, isAdmin=false, diff='', matchActive=false;
+        let php=100, maxPHP=100, ehp=100, maxEHP=100, gOver=false, isTS=false, dioTS=false, isAdmin=false, diff='', matchActive=false;
         let pKnives = [], eKnives = [], globalKnifePool = 0, dioKnifePool = 0; 
-        let pHits=0, eHits=0, pComboDmg=0, pStunned=false, eStunned=false, canAttack=true, pCool=750;
+        let pHits=0, pStunned=false, canAttack=true, pCool=750;
         let isBlocking=false, mashCount = 0, struggleActive = false, struggleTimer = 3.0;
 
-        function setDiff(m) { diff=m; document.getElementById('menu').style.display='none'; document.getElementById('charMenu').style.display='block'; }
+        function setDiff(m) { 
+            diff=m; 
+            document.getElementById('menu').style.display='none'; 
+            document.getElementById('charMenu').style.display='block'; 
+        }
 
         function start(char) {
             matchActive = true; document.getElementById('quitBtn').style.display = 'block';
             if(diff === 'hard') { const music = document.getElementById('hardMusic'); music.volume = 0.5; music.play(); }
+            
+            // Difficulty HP Scaling
+            if(diff === 'easy') { ehp = maxEHP = 50; }
+            else if(diff === 'med') { ehp = maxEHP = 100; }
+            else if(diff === 'hard') { ehp = maxEHP = 150; }
+            else { ehp = 999999; }
+
             if(char=='coco'){ isAdmin=true; php=1000000; maxPHP=1000000; pCool=10; p.material.color.set(0x228b22); } 
             else { isAdmin=false; php=100; maxPHP=100; pCool=750; p.material.color.set(0x0066ff); }
-            ehp = (diff==='dummy') ? 999999 : 100;
+            
             document.getElementById('charMenu').style.display='none';
             document.getElementById('ui').style.display=document.getElementById('ctrl').style.display='block';
+            upd();
             if(diff!=='dummy') runAI();
         }
 
-        // UNIVERSAL MASH LOGIC
         window.addEventListener('pointerdown', () => {
             if(struggleActive) {
                 mashCount++;
@@ -102,7 +113,7 @@
         });
 
         const blkBtn = document.getElementById('blkBtn');
-        blkBtn.onpointerdown = (e) => { e.stopPropagation(); if(!pStunned && !struggleActive) { isBlocking = true; blkBtn.style.background = "cyan"; p.scale.set(1.1, 1, 1); } };
+        blkBtn.onpointerdown = (ev) => { ev.stopPropagation(); if(!pStunned && !struggleActive) { isBlocking = true; blkBtn.style.background = "cyan"; p.scale.set(1.1, 1, 1); } };
         blkBtn.onpointerup = blkBtn.onpointerleave = () => { isBlocking = false; blkBtn.style.background = "#555"; p.scale.set(1, 1, 1); };
 
         function winStruggle() {
@@ -111,18 +122,10 @@
             dioTS = false; document.body.classList.remove('dio-ts');
             isTS = true; document.body.classList.add('ts-active');
             document.getElementById('msg').innerText = "MY TIME!";
-            setTimeout(() => { 
-                isTS = false; 
-                document.body.classList.remove('ts-active'); 
-                document.getElementById('msg').innerText = "TIME RESUMED."; 
-            }, 3000);
+            setTimeout(() => { isTS = false; document.body.classList.remove('ts-active'); document.getElementById('msg').innerText = "TIME RESUMED."; }, 3000);
         }
 
-        function failStruggle() {
-            struggleActive = false;
-            document.getElementById('mashUI').style.display = 'none';
-            document.getElementById('msg').innerText = "TOO SLOW!";
-        }
+        function failStruggle() { struggleActive = false; document.getElementById('mashUI').style.display = 'none'; document.getElementById('msg').innerText = "FAILED!"; }
 
         function showDamage(val, x, color="#ff0") {
             const div = document.createElement('div'); div.className = 'dmg-popup';
@@ -132,17 +135,20 @@
         }
 
         function applyHit(target, dmg, color) {
-            if(target === 'p' && isBlocking) { showDamage("REFLECT!", p.position.x, "cyan"); return true; }
-            if(target === 'e') {
-                ehp -= dmg; showDamage(dmg, e.position.x, color);
+            if(target === 'p') {
+                if(isBlocking) { showDamage("REFLECT!", p.position.x, "cyan"); return true; }
+                let finalDmg = dmg;
+                if(diff === 'easy') finalDmg *= 0.5;
+                if(diff === 'hard') finalDmg *= 1.25;
+                php -= finalDmg; showDamage(Math.floor(finalDmg), p.position.x, color);
             } else {
-                php -= dmg; showDamage(dmg, p.position.x, color);
+                ehp -= dmg; showDamage(dmg, e.position.x, color);
             }
             upd(); return false;
         }
 
-        document.getElementById('atkBtn').onclick = (e) => {
-            e.stopPropagation();
+        document.getElementById('atkBtn').onclick = (ev) => {
+            ev.stopPropagation();
             if(gOver || pStunned || (!canAttack && !isTS) || dioTS || isBlocking) return;
             if(!isTS) canAttack = false; 
             applyHit('e', isTS ? 0.5 : (isAdmin?1000:5), isTS?"#0ff":"#ff0");
@@ -152,17 +158,26 @@
         async function runAI() {
             while(matchActive && !gOver) {
                 await new Promise(r => setTimeout(r, 1300));
-                if(isTS || dioTS || eStunned) continue;
+                if(isTS || dioTS) continue;
+                
                 let rand = Math.random();
-                if(rand < 0.25 && diff !== 'easy') {
+                let tsChance = (diff==='easy') ? 0.05 : (diff==='med' ? 0.15 : 0.35);
+                
+                if(rand < tsChance) {
                     document.getElementById('msg').innerText = "ZA WARUDO!!";
-                    dioTS = true; struggleActive = true; struggleTimer = 3.0; mashCount = 0;
+                    dioTS = true; struggleActive = true; 
+                    struggleTimer = (diff==='easy') ? 5.0 : (diff==='med' ? 4.0 : 3.0);
+                    mashCount = 0;
                     document.body.classList.add('dio-ts');
                     document.getElementById('mashUI').style.display = 'block';
                     document.getElementById('mBar').style.width = "0%";
-                    for(let i=0; i<8; i++) setTimeout(() => { if(dioTS) spawnEKnife(); }, i * 350);
-                } else if (rand < 0.5) { spawnEKnife(); } 
-                else { e.position.x = -2.5; applyHit('p', 8, "#f00"); setTimeout(()=>e.position.x = 4, 150); }
+                    let knfCount = (diff==='easy') ? 3 : (diff==='med' ? 6 : 12);
+                    for(let i=0; i<knfCount; i++) setTimeout(() => { if(dioTS) spawnEKnife(); }, i * 250);
+                } else if (rand < 0.6) { 
+                    spawnEKnife(); 
+                } else { 
+                    e.position.x = -2.5; applyHit('p', 8, "#f00"); setTimeout(()=>e.position.x = 4, 150); 
+                }
             }
         }
 
@@ -173,7 +188,7 @@
         }
 
         function upd() {
-            document.getElementById('eBar').style.width = (diff==='dummy') ? '100%' : Math.max(0, ehp)+'%';
+            document.getElementById('eBar').style.width = (diff==='dummy') ? '100%' : (ehp/maxEHP*100)+'%';
             document.getElementById('pBar').style.width=(php/maxPHP*100)+'%';
             if(php<=0 || (ehp<=0 && diff!=='dummy')) { 
                 gOver=true; document.getElementById('hardMusic').pause();
@@ -182,21 +197,18 @@
             }
         }
 
-        let lastTime = performance.now();
         function animate() {
             requestAnimationFrame(animate);
-            let now = performance.now();
-            let delta = (now - lastTime) / 1000;
-            lastTime = now;
             if(struggleActive) {
-                struggleTimer -= delta;
+                struggleTimer -= 0.016;
                 document.getElementById('timerTxt').innerText = Math.max(0, struggleTimer).toFixed(1) + "s";
                 if(struggleTimer <= 0) { endDioTS(); failStruggle(); }
             }
             if(matchActive && !gOver) {
                 eKnives.forEach((k, i) => {
                     if (!dioTS || k.launched) {
-                        k.mesh.position.x += k.reflected ? 0.6 : -0.28;
+                        let kSpeed = (diff==='easy') ? 0.15 : (diff==='med' ? 0.25 : 0.4);
+                        k.mesh.position.x += k.reflected ? 0.6 : -kSpeed;
                         if (!k.reflected && Math.abs(k.mesh.position.x - p.position.x) < 0.6) {
                             if(isBlocking) { k.reflected = true; k.mesh.material.color.set(0x00ffff); }
                             else { let d = 15; if(dioTS) dioKnifePool += d; else applyHit('p', d, "#f00"); s.remove(k.mesh); eKnives.splice(i, 1); }
