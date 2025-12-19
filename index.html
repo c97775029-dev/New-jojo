@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bizarre Legacy: Admin Turtle</title>
+    <title>Coco Jumbo: Time Architect</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: monospace; touch-action: none; -webkit-user-select: none; }
@@ -10,14 +10,9 @@
         .bar-bg { width: 120px; height: 12px; border: 2px solid #fff; background: #333; margin: 5px auto; }
         #pBar, #eBar { width: 100%; height: 100%; transition: 0.1s; }
         #pBar { background: #00ff00; } #eBar { background: #ff0000; }
-        #qte { position: absolute; top: 50%; left: 50%; display: none; }
-        #t-circ { width: 80px; height: 80px; border: 4px solid #fff; border-radius: 50%; position: absolute; transform: translate(-50%,-50%); }
-        #r-circ { width: 200px; height: 200px; border: 4px solid gold; border-radius: 50%; position: absolute; transform: translate(-50%,-50%); }
         #ctrl { position: absolute; bottom: 30px; width: 100%; text-align: center; display: none; }
-        button { padding: 12px; font-size: 16px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; margin: 5px; width: 90%; }
-        #oraBtn { background: #00ff00; color: #000; width: 150px; }
-        #oraBtn:disabled { background: #222 !important; opacity: 0.7; }
-        .ts-player { filter: invert(1) hue-rotate(180deg); } .ts-dio { filter: invert(1); }
+        button { padding: 12px; font-size: 14px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; margin: 5px; width: 120px; }
+        .ts-active { filter: invert(1) hue-rotate(180deg); }
     </style>
 </head>
 <body>
@@ -29,7 +24,7 @@
     </div>
     <div id="charMenu" style="display:none">
         <h2 style="color:gold">SELECT STAND</h2>
-        <button style="background:#0066ff;color:#fff" onclick="start('jotaro')">JOTARO (Star Platinum)</button>
+        <button style="background:#0066ff;color:#fff" onclick="start('jotaro')">JOTARO</button>
         <button style="background:#228b22;color:#fff" onclick="start('coco')">COCO JUMBO (ADMIN)</button>
     </div>
     <div id="ui">
@@ -37,155 +32,87 @@
             <div id="pName">PLAYER</div><div class="bar-bg"><div id="pBar"></div></div>
             <div>DIO</div><div class="bar-bg"><div id="eBar"></div></div>
         </div>
-        <p id="msg" style="color:gold;font-size:18px">FIGHT!</p>
+        <p id="msg" style="color:gold">FIGHT!</p>
     </div>
-    <div id="qte"><div id="t-circ"></div><div id="r-circ"></div></div>
     <div id="retry" style="display:none"><h2 id="st"></h2><button onclick="location.reload()">RETRY</button></div>
     <div id="ctrl">
-        <button id="oraBtn">ATTACK</button>
-        <button id="tsBtn" style="display:none; background:gold; color:black; width:150px;">STOP TIME</button>
+        <button id="atkBtn" style="background:#00ff00">ATTACK</button>
+        <button id="tsBtn" style="display:none; background:gold">STOP TIME</button>
+        <button id="knfBtn" style="display:none; background:silver">THROW KNIFE</button>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        document.addEventListener('touchstart', (e) => { if(e.touches.length > 1) e.preventDefault(); }, {passive: false});
         const s = new THREE.Scene(), c = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000), r = new THREE.WebGLRenderer({antialias:true});
         r.setSize(window.innerWidth, window.innerHeight); document.body.appendChild(r.domElement);
         s.add(new THREE.AmbientLight(0xffffff, 1.0)); c.position.z = 5;
-        const auraLight = new THREE.PointLight(0x00ff00, 0, 10); s.add(auraLight);
         const p = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0x0066ff})); p.position.x = -2; s.add(p);
         const e = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0xff0000})); e.position.x = 2; s.add(e);
-        const k = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.1), new THREE.MeshStandardMaterial({color: 0xcccccc})); k.visible = false; s.add(k);
         
-        let php=100, maxPHP=100, ehp=100, gOver=false, isTS=false, qteOn=false, rSize=200, qHits=0, diff='', isRetreating=false, knifeActive=false, knifeReturning=false, isPausing=false, isCharging=false, isAdmin=false;
-        let lastTS = Date.now(), canAttack = true, dioReturnChance = 30, knifeSpeed = 0.3, pDmg=5, pCool=750;
+        let php=100, maxPHP=100, ehp=100, gOver=false, isTS=false, isAdmin=false, diff='';
+        let activeKnives = [];
 
         function setDiff(m) { diff=m; document.getElementById('menu').style.display='none'; document.getElementById('charMenu').style.display='block'; }
 
         function start(char) {
-            if(char=='jotaro'){ 
-                php=100; maxPHP=100; pDmg=5; pCool=750; p.material.color.set(0x0066ff); 
-                p.scale.set(1, 1, 1); document.getElementById('pName').innerText="JOTARO";
-            } else if(char=='coco'){ 
-                isAdmin=true; php=1000000; maxPHP=1000000; pDmg=1000; pCool=10; p.material.color.set(0x228b22); 
-                p.scale.set(0.8, 0.4, 0.8); p.position.y = -0.8; document.getElementById('pName').innerText="COCO JUMBO";
+            if(char=='coco'){
+                isAdmin=true; php=1000000; maxPHP=1000000; p.material.color.set(0x228b22);
+                p.scale.set(0.8, 0.4, 0.8); p.position.y = -0.8;
                 document.getElementById('tsBtn').style.display = 'inline-block';
+                document.getElementById('knfBtn').style.display = 'inline-block';
             }
-            
-            dioReturnChance = isAdmin ? 0 : (diff=='easy' ? 0 : (diff=='med' ? 15 : 30));
             document.getElementById('charMenu').style.display='none';
             document.getElementById('ui').style.display=document.getElementById('ctrl').style.display='block';
-            
-            setInterval(eAtk, diff=='easy'?3500 : (diff=='med'?2200:1100));
-            setInterval(() => { if(!isRetreating && !isTS && !isPausing && !qteOn) knifePhase(); }, 3500);
-            setInterval(() => { if(!gOver && !isTS && !isRetreating && !isPausing && !qteOn && (Date.now() - lastTS > 6000)) qOn(); }, 2000);
+            if(!isAdmin) setInterval(dioAtk, 1500);
         }
 
-        const oraBtn = document.getElementById('oraBtn');
-        const tsBtn = document.getElementById('tsBtn');
-        oraBtn.addEventListener('touchstart', (ev) => { ev.preventDefault(); go(); });
-        tsBtn.addEventListener('touchstart', (ev) => { ev.preventDefault(); if(!isTS) playerTS(); });
-
-        function go() { 
+        document.getElementById('atkBtn').onclick = () => {
             if(gOver) return;
-            if(knifeActive && !knifeReturning) {
-                if(k.position.x < -0.1 && k.position.x > -2.4) {
-                    knifeReturning = true; k.material.color.set(0x00ff00);
-                    if(isAdmin) dioReturnChance = 0; // Unblockable
-                    document.getElementById('msg').innerText = "ADMIN PARRIED!!"; knifeSpeed += 0.2;
-                } return;
+            ehp -= isAdmin ? 100 : 5; upd();
+            p.position.x = -1; setTimeout(()=>p.position.x=-2, 50);
+        };
+
+        document.getElementById('tsBtn').onclick = () => {
+            isTS = !isTS;
+            document.body.classList.toggle('ts-active', isTS);
+            document.getElementById('tsBtn').innerText = isTS ? "RESUME TIME" : "STOP TIME";
+        };
+
+        document.getElementById('knfBtn').onclick = () => {
+            const knf = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.1), new THREE.MeshStandardMaterial({color: 0xcccccc}));
+            knf.position.set(p.position.x + 0.5, p.position.y + 0.5, 0);
+            s.add(knf);
+            
+            let knfObj = { mesh: knf, launched: !isTS };
+            if (isTS) {
+                // Move forward slightly then stop
+                knf.position.x += 0.8;
             }
-            if(isTS && document.body.classList.contains('ts-player')) { ehp -= 20; upd(); p.position.x = 1; setTimeout(()=>p.position.x=-2, 30); return; }
-            if(!canAttack || isTS || isRetreating || qteOn) { if(qteOn && isAdmin) qHit(true); return; }
+            activeKnives.push(knfObj);
+        };
 
-            canAttack = false; oraBtn.disabled = !isAdmin;
-            ehp -= pDmg; upd();
-            p.position.x = 1; setTimeout(()=>p.position.x=-2, 100);
-            setTimeout(() => { canAttack = true; if(!isAdmin) oraBtn.disabled = false; }, pCool); 
+        function dioAtk() { if(!isTS && !gOver) { e.position.x=0; php-=5; upd(); setTimeout(()=>e.position.x=2, 100); }}
+
+        function upd() {
+            document.getElementById('pBar').style.width=(php/maxPHP*100)+'%';
+            document.getElementById('eBar').style.width=Math.max(0,ehp)+'%';
+            if(ehp<=0){ gOver=true; document.getElementById('retry').style.display='block'; document.getElementById('st').innerText="DIO DEFEATED"; }
         }
-        
-        function knifePhase() {
-            if(gOver || (isTS && document.body.classList.contains('ts-player')) || isRetreating || qteOn) return;
-            isRetreating = true; isPausing = true; canAttack = false;
-            knifeSpeed = 0.3;
-            document.getElementById('msg').innerText = "KNIVES!"; e.position.x = 5;
-            setTimeout(() => {
-                isPausing = false; knifeActive = true; knifeReturning = false;
-                k.position.set(5, 0, 0); k.visible = true;
-                const tLoop = setInterval(() => {
-                    if(gOver || (isTS && document.body.classList.contains('ts-player'))) { clearInterval(tLoop); k.visible=false; return; }
-                    if(!knifeReturning) {
-                        k.position.x -= knifeSpeed; 
-                        if(k.position.x <= -2.5) { clearInterval(tLoop); endKnifePhase(true); }
-                    } else {
-                        k.position.x += (knifeSpeed * 1.5); 
-                        if(k.position.x >= 2.0 && k.position.x <= 2.5 && knifeReturning) {
-                            if(Math.random() * 100 < dioReturnChance) {
-                                knifeReturning = false; k.material.color.set(0xff0000);
-                            } else { clearInterval(tLoop); endKnifePhase(false); }
-                        } else if (k.position.x > 2.5) { clearInterval(tLoop); endKnifePhase(false); }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            activeKnives.forEach((kObj, index) => {
+                if (!isTS || kObj.launched) {
+                    kObj.mesh.position.x += 0.2;
+                    if (kObj.mesh.position.x > 1.8 && kObj.mesh.position.x < 2.2) {
+                        ehp -= isAdmin ? 50 : 10; upd();
+                        s.remove(kObj.mesh);
+                        activeKnives.splice(index, 1);
                     }
-                }, 20);
-            }, 600); 
-        }
-
-        function endKnifePhase(hitPlayer) {
-            k.visible = false; knifeActive = false;
-            if(hitPlayer) { php -= (isAdmin? 0 : 30); document.getElementById('msg').innerText = "HIT!"; }
-            else { ehp -= isAdmin? 1000 : 35; document.getElementById('msg').innerText = "DIO HIT!"; }
-            upd(); e.position.x = 2; isRetreating = false; canAttack = true;
-        }
-
-        function eAtk() { 
-            if(gOver || isTS || isRetreating || qteOn || isPausing) return; 
-            e.position.x=-1; php-=(isAdmin? 0 : 8); upd(); 
-            setTimeout(()=>e.position.x=2,100); 
-        }
-
-        function qOn() { 
-            if(isRetreating || isTS || qteOn) return;
-            if(isAdmin) { playerTS(); return; } // Bypass DIO's TS
-            isPausing = true; isCharging = true;
-            document.getElementById('msg').innerText = "THE WORLD!";
-            setTimeout(() => {
-                isPausing = false; isCharging = false; qteOn=true; qHits=0; rSize=200; 
-                document.getElementById('qte').style.display='block';
-            }, 800); 
-        }
-
-        function qHit(auto = false) { 
-            if(auto || (rSize>75 && rSize<95)){ qHits++; rSize=200; 
-                if(qHits>= (isAdmin?1:3)){ qteOn=false; document.getElementById('qte').style.display='none'; playerTS(); }
-            } else { qteOn=false; document.getElementById('qte').style.display='none'; dioTS(); }
-        }
-
-        function playerTS() {
-            isTS=true; lastTS = Date.now(); document.body.classList.add('ts-player');
-            document.getElementById('msg').innerText = "TIME IS MINE!";
-            setTimeout(() => { isTS = false; document.body.classList.remove('ts-player'); }, 8000);
-        }
-
-        function dioTS() {
-            if(isAdmin) return;
-            isTS=true; lastTS = Date.now(); document.body.classList.add('ts-dio');
-            document.getElementById('msg').innerText = "ZA WARUDO!!";
-            let h=0; const l=setInterval(()=>{
-                if(gOver){clearInterval(l);return;}
-                e.position.x=-1; php-=4; upd(); setTimeout(()=>e.position.x=2,100); h++;
-                if(h>=10){ clearInterval(l); isTS=false; document.body.classList.remove('ts-dio'); }
-            }, 800);
-        }
-
-        function upd() { 
-            document.getElementById('pBar').style.width=Math.min(100, (php/maxPHP)*100)+'%'; 
-            document.getElementById('eBar').style.width=Math.max(0,ehp)+'%'; 
-            if(php<=0||ehp<=0) { gOver=true; document.getElementById('retry').style.display='block'; document.getElementById('st').innerText=php<=0?"RETIRED":"DIO DEFEATED"; }
-        }
-
-        function animate() { 
-            requestAnimationFrame(animate); 
-            if(qteOn){ rSize -= 3; if(rSize<40) rSize=200; document.getElementById('r-circ').style.width=document.getElementById('r-circ').style.height=rSize+'px'; } 
-            r.render(s, c); 
+                    if(kObj.mesh.position.x > 10) { s.remove(kObj.mesh); activeKnives.splice(index, 1); }
+                }
+            });
+            r.render(s, c);
         }
         animate();
     </script>
