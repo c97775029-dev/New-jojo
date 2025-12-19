@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bizarre Legacy: Timeless Defiance</title>
+    <title>Bizarre Legacy: Avalon & Absolute Freeze</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: monospace; touch-action: none; -webkit-user-select: none; }
@@ -18,27 +18,29 @@
         .dio-ts { filter: grayscale(1) brightness(0.7) sepia(1) hue-rotate(50deg); }
         .dmg-popup { position: absolute; color: #ff0; font-weight: bold; font-size: 22px; pointer-events: none; text-shadow: 2px 2px #000; animation: floatUp 0.8s ease-out forwards; z-index: 100; }
         #mashUI { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); display: none; text-align: center; z-index: 200; pointer-events: none; }
+        #audioStatus { position: absolute; bottom: 5px; right: 5px; font-size: 10px; color: #444; }
         @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-100px) scale(1.1); opacity: 0; } }
     </style>
 </head>
 <body id="gameBody">
     <audio id="hardMusic" loop preload="auto">
-        <source src="https://vgmsite.com/soundtracks/jojo-s-bizarre-adventure-battle-tendency-ost/ndnynovn/23%20Avalon.mp3" type="audio/mpeg">
+        <source src="https://files.catbox.moe/g2f6w6.mp3" type="audio/mpeg">
     </audio>
 
+    <div id="audioStatus"></div>
     <button id="quitBtn" onclick="location.reload()">QUIT</button>
 
     <div id="mashUI">
         <h1 id="timerTxt" style="color:red; font-size: 50px; margin:0;">3.0s</h1>
-        <h2 style="color:cyan; margin: 10px 0;">TAP REPEATEDLY!</h2>
+        <h2 style="color:cyan; margin: 10px 0;">MASH 15 TIMES!</h2>
         <div class="bar-bg" style="width:240px; height:20px;"><div id="mBar" style="width:0%; background:cyan; height:100%; box-shadow: 0 0 15px cyan;"></div></div>
     </div>
 
     <div id="menu">
         <h2 style="color:gold">SELECT DIFFICULTY</h2>
-        <button style="background:#0f0" onclick="setDiff('easy')">EASY (5s Struggle)</button>
-        <button style="background:#fa0; color:#000" onclick="setDiff('med')">MEDIUM (4s Struggle)</button>
-        <button style="background:#f00" onclick="setDiff('hard')">HARD (3s Struggle)</button>
+        <button style="background:#0f0" onclick="setDiff('easy')">EASY</button>
+        <button style="background:#fa0; color:#000" onclick="setDiff('med')">MEDIUM</button>
+        <button style="background:#f00" onclick="setDiff('hard')">HARD (Avalon)</button>
         <button style="background:#555; border: 2px solid gold;" onclick="setDiff('dummy')">DUMMY</button>
     </div>
 
@@ -53,7 +55,7 @@
             <div>YOU</div><div class="bar-bg"><div id="pBar"></div></div>
             <div>DIO</div><div class="bar-bg"><div id="eBar"></div></div>
         </div>
-        <p id="msg" style="color:gold">PREPARE...</p>
+        <p id="msg" style="color:gold">FIGHT!</p>
     </div>
 
     <div id="retry" style="display:none"><h2 id="st"></h2><button onclick="location.reload()">RETRY</button></div>
@@ -74,22 +76,24 @@
         const p = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0x0066ff})); p.position.x = -3.5; s.add(p);
         const e = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0xff0000})); e.position.x = 4; s.add(e);
         
-        let php=100, maxPHP=100, ehp=100, maxEHP=100, gOver=false, isTS=false, dioTS=false, isAdmin=false, diff='', matchActive=false;
-        let eKnives = [], dioKnifePool = 0; 
-        let canAttack=true, pCool=750, isBlocking=false, mashCount = 0, struggleActive = false, struggleTimer = 3.0;
+        let php=100, maxPHP=100, ehp=100, maxEHP=100, gOver=false, isTS=false, dioTS=false, diff='', matchActive=false;
+        let eKnives = [], canAttack=true, pCool=750, isBlocking=false;
+        let mashCount = 0, struggleActive = false, struggleTimer = 3.0, knifeFrozen = false;
 
         function setDiff(m) { diff=m; document.getElementById('menu').style.display='none'; document.getElementById('charMenu').style.display='block'; }
 
         function start(char) {
             matchActive = true; document.getElementById('quitBtn').style.display = 'block';
-            if(diff === 'hard') { document.getElementById('hardMusic').play().catch(()=>{}); }
+            if(diff === 'hard') { 
+                const music = document.getElementById('hardMusic');
+                music.volume = 0.5;
+                music.play().then(() => { document.getElementById('audioStatus').innerText = " Avalon Playing"; })
+                .catch(err => { document.getElementById('audioStatus').innerText = " Audio Blocked - Tap screen"; });
+            }
             
-            if(diff === 'easy') { ehp = maxEHP = 50; }
-            else if(diff === 'med') { ehp = maxEHP = 100; }
-            else { ehp = maxEHP = 150; }
-
-            if(char=='coco'){ isAdmin=true; php=1000000; maxPHP=1000000; pCool=10; p.material.color.set(0x228b22); } 
-            else { isAdmin=false; php=100; maxPHP=100; pCool=750; p.material.color.set(0x0066ff); }
+            ehp = maxEHP = (diff === 'easy') ? 50 : (diff === 'med' ? 100 : 150);
+            if(char=='coco'){ php=maxPHP=1000000; pCool=10; p.material.color.set(0x228b22); } 
+            else { php=maxPHP=100; pCool=750; p.material.color.set(0x0066ff); }
             
             document.getElementById('charMenu').style.display='none';
             document.getElementById('ui').style.display=document.getElementById('ctrl').style.display='block';
@@ -97,12 +101,11 @@
             if(diff!=='dummy') runAI();
         }
 
-        // Tap logic (Universal)
         window.addEventListener('pointerdown', () => {
             if(struggleActive) {
                 mashCount++;
-                document.getElementById('mBar').style.width = (mashCount * 10) + "%";
-                if(mashCount >= 10) winStruggle();
+                document.getElementById('mBar').style.width = (mashCount / 15 * 100) + "%";
+                if(mashCount >= 15) winStruggle();
             }
         });
 
@@ -111,13 +114,24 @@
         blkBtn.onpointerup = blkBtn.onpointerleave = () => { isBlocking = false; blkBtn.style.background = "#555"; };
 
         function winStruggle() {
-            struggleActive = false; document.getElementById('mashUI').style.display = 'none';
+            struggleActive = false; 
+            knifeFrozen = false;
+            // Delete all knives so they don't launch
+            eKnives.forEach(k => s.remove(k.mesh));
+            eKnives = [];
+            document.getElementById('mashUI').style.display = 'none';
             dioTS = false; document.body.classList.remove('dio-ts');
-            // Resume all knives
-            eKnives.forEach(k => k.launched = true);
             isTS = true; document.body.classList.add('ts-active');
-            document.getElementById('msg').innerText = "MY TIME!";
+            document.getElementById('msg').innerText = "STAR PLATINUM: THE WORLD!";
             setTimeout(() => { isTS = false; document.body.classList.remove('ts-active'); document.getElementById('msg').innerText = "RESUMED!"; }, 3000);
+        }
+
+        function failStruggle() {
+            struggleActive = false;
+            knifeFrozen = false; // Knives launch now
+            document.getElementById('mashUI').style.display = 'none';
+            dioTS = false; document.body.classList.remove('dio-ts');
+            document.getElementById('msg').innerText = "TOO LATE!";
         }
 
         function showDamage(val, x, color="#ff0") {
@@ -140,7 +154,7 @@
             ev.stopPropagation();
             if(gOver || (!canAttack && !isTS) || dioTS || isBlocking) return;
             if(!isTS) canAttack = false; 
-            applyHit('e', isTS ? 0.5 : (isAdmin?1000:5), isTS?"#0ff":"#ff0");
+            applyHit('e', isTS ? 0.5 : 5, isTS?"#0ff":"#ff0");
             if(!isTS) setTimeout(() => { canAttack=true; }, pCool);
         };
 
@@ -150,23 +164,22 @@
                 if(isTS || dioTS) continue;
                 let tsChance = (diff==='easy') ? 0.05 : (diff==='med' ? 0.15 : 0.35);
                 if(Math.random() < tsChance) {
-                    dioTS = true; struggleActive = true; 
-                    struggleTimer = (diff==='easy') ? 5.0 : (diff==='med' ? 4.0 : 3.0);
-                    mashCount = 0;
+                    dioTS = true; struggleActive = true; knifeFrozen = true;
+                    struggleTimer = 3.0; mashCount = 0;
                     document.body.classList.add('dio-ts');
                     document.getElementById('mashUI').style.display = 'block';
                     document.getElementById('mBar').style.width = "0%";
                     let knfCount = (diff==='easy') ? 4 : (diff==='med' ? 7 : 14);
-                    for(let i=0; i<knfCount; i++) setTimeout(() => { if(dioTS) spawnEKnife(false); }, i * 150);
-                } else if (Math.random() < 0.6) { spawnEKnife(true); } 
+                    for(let i=0; i<knfCount; i++) setTimeout(() => { if(dioTS) spawnEKnife(); }, i * 150);
+                } else if (Math.random() < 0.6) { spawnEKnife(); } 
                 else { e.position.x = -2.5; applyHit('p', 8, "#f00"); setTimeout(()=>e.position.x = 4, 150); }
             }
         }
 
-        function spawnEKnife(autoLaunch) {
+        function spawnEKnife() {
             const knf = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.15, 0.1), new THREE.MeshStandardMaterial({color: 0xffaa00}));
             knf.position.set(e.position.x - 0.5, e.position.y + (Math.random()*1.5-0.75), 0);
-            s.add(knf); eKnives.push({ mesh: knf, launched: autoLaunch, reflected: false });
+            s.add(knf); eKnives.push({ mesh: knf, reflected: false });
         }
 
         function upd() {
@@ -183,24 +196,17 @@
             if(struggleActive) {
                 struggleTimer -= 0.016;
                 document.getElementById('timerTxt').innerText = Math.max(0, struggleTimer).toFixed(1) + "s";
-                if(struggleTimer <= 0) { 
-                    dioTS = false; struggleActive = false; 
-                    document.body.classList.remove('dio-ts'); 
-                    document.getElementById('mashUI').style.display = 'none';
-                    eKnives.forEach(k => k.launched = true);
-                }
+                if(struggleTimer <= 0) failStruggle();
             }
-            if(matchActive && !gOver) {
+            if(matchActive && !gOver && !knifeFrozen) {
                 eKnives.forEach((k, i) => {
-                    if (k.launched) {
-                        let kSpeed = (diff==='easy') ? 0.12 : (diff==='med' ? 0.25 : 0.42);
-                        k.mesh.position.x += k.reflected ? 0.6 : -kSpeed;
-                        if (!k.reflected && Math.abs(k.mesh.position.x - p.position.x) < 0.6) {
-                            if(isBlocking) { k.reflected = true; k.mesh.material.color.set(0x00ffff); }
-                            else { applyHit('p', 12, "#f00"); s.remove(k.mesh); eKnives.splice(i, 1); }
-                        } else if (k.reflected && Math.abs(k.mesh.position.x - e.position.x) < 0.6) { applyHit('e', 20, "cyan"); s.remove(k.mesh); eKnives.splice(i, 1); }
-                        else if(Math.abs(k.mesh.position.x) > 15) { s.remove(k.mesh); eKnives.splice(i, 1); }
-                    }
+                    let kSpeed = (diff==='easy') ? 0.12 : (diff==='med' ? 0.25 : 0.45);
+                    k.mesh.position.x += k.reflected ? 0.6 : -kSpeed;
+                    if (!k.reflected && Math.abs(k.mesh.position.x - p.position.x) < 0.6) {
+                        if(isBlocking) { k.reflected = true; k.mesh.material.color.set(0x00ffff); }
+                        else { applyHit('p', 12, "#f00"); s.remove(k.mesh); eKnives.splice(i, 1); }
+                    } else if (k.reflected && Math.abs(k.mesh.position.x - e.position.x) < 0.6) { applyHit('e', 20, "cyan"); s.remove(k.mesh); eKnives.splice(i, 1); }
+                    else if(Math.abs(k.mesh.position.x) > 15) { s.remove(k.mesh); eKnives.splice(i, 1); }
                 });
             }
             r.render(s, c);
