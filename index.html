@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bizarre Legacy: 40% Volley</title>
+    <title>Bizarre Legacy: Refined Duel</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: monospace; touch-action: none; -webkit-user-select: none; }
@@ -50,14 +50,13 @@
         const k = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.1), new THREE.MeshStandardMaterial({color: 0xcccccc})); k.visible = false; s.add(k);
         
         let php=100, ehp=100, gOver=false, isTS=false, qteOn=false, rSize=200, qHits=0, diff='', isRetreating=false, knifeActive=false, knifeReturning=false, isPausing=false, isCharging=false;
-        let lastTS = Date.now(), canAttack = true, dioReturnChance = 40, knifeSpeed = 0.35;
+        let lastTS = Date.now(), canAttack = true, dioReturnChance = 40, knifeSpeed = 0.3;
 
         const oraBtn = document.getElementById('oraBtn');
         oraBtn.addEventListener('touchstart', (ev) => { ev.preventDefault(); go(); });
 
         function start(m) {
             diff = m; 
-            // 40% chance for Hard, -15% each tier below
             dioReturnChance = (m=='easy') ? 10 : (m=='med' ? 25 : 40);
             document.getElementById('menu').style.display='none';
             document.getElementById('ui').style.display=document.getElementById('ctrl').style.display='block';
@@ -69,8 +68,9 @@
 
         function go() { 
             if(gOver) return;
+            // EASIER HIT DETECTION: Knife is parryable from x = -0.2 down to -2.2 (much wider window)
             if(knifeActive && !knifeReturning) {
-                if(k.position.x < -0.4 && k.position.x > -1.9) {
+                if(k.position.x < -0.2 && k.position.x > -2.2) {
                     knifeReturning = true; k.material.color.set(0xffd700);
                     document.getElementById('msg').innerText = "PARRIED!!"; knifeSpeed += 0.08;
                 } return;
@@ -87,7 +87,7 @@
         function knifePhase() {
             if(gOver || (isTS && document.body.classList.contains('ts-player')) || isRetreating || qteOn) return;
             isRetreating = true; isPausing = true; canAttack = false;
-            knifeSpeed = 0.35;
+            knifeSpeed = 0.3; // Slower base speed
             document.getElementById('msg').innerText = "KNIVES!"; e.position.x = 5; oraBtn.disabled = true;
             setTimeout(() => {
                 isPausing = false; knifeActive = true; knifeReturning = false;
