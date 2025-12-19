@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bizarre Legacy: Balanced Speed</title>
+    <title>Bizarre Legacy: Precision Mode</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: monospace; touch-action: none; -webkit-user-select: none; }
@@ -15,7 +15,8 @@
         #r-circ { width: 200px; height: 200px; border: 4px solid gold; border-radius: 50%; position: absolute; transform: translate(-50%,-50%); }
         #ctrl { position: absolute; bottom: 30px; width: 100%; text-align: center; display: none; }
         button { padding: 15px 30px; font-size: 18px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; margin: 5px; width: 150px; }
-        button:disabled { background: #444 !important; opacity: 0.7; }
+        #oraBtn { background: #0066ff; color: #fff; }
+        #oraBtn:disabled { background: #222 !important; color: #666; opacity: 0.7; }
         .ts-player { filter: hue-rotate(260deg); }
         .ts-dio { filter: invert(1); }
         .aura-yellow { box-shadow: 0 0 60px gold inset, 0 0 30px yellow; }
@@ -33,11 +34,11 @@
             <div>JOTARO<div class="bar-bg"><div id="pBar"></div></div></div>
             <div>DIO<div class="bar-bg"><div id="eBar"></div></div></div>
         </div>
-        <p id="msg" style="color:gold;font-size:18px">SURVIVE</p>
+        <p id="msg" style="color:gold;font-size:18px">WATCH THE RHYTHM</p>
     </div>
     <div id="qte"><div id="t-circ"></div><div id="r-circ"></div></div>
     <div id="retry" style="display:none"><h2 id="st"></h2><button onclick="location.reload()">RETRY</button></div>
-    <div id="ctrl"><button id="oraBtn" style="background:#f05;color:#fff">ORA!</button></div>
+    <div id="ctrl"><button id="oraBtn">ORA!</button></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
@@ -62,30 +63,31 @@
             document.getElementById('ui').style.display=document.getElementById('ctrl').style.display='block';
             setInterval(eAtk, diff=='easy'?8000 : (diff=='med'?5000:3000));
             setInterval(() => { if(!isRetreating && !isTS && !isPausing && !qteOn) knifePhase(); }, 9000);
-            setInterval(() => { if(!gOver && !isTS && !isRetreating && !isPausing && !qteOn && (Date.now() - lastTS > 10000)) qOn(); }, 4000);
+            // Time Stop every 7 seconds
+            setInterval(() => { if(!gOver && !isTS && !isRetreating && !isPausing && !qteOn && (Date.now() - lastTS > 7000)) qOn(); }, 3000);
         }
 
         function go() { 
             if(gOver) return;
 
-            // PARRY: No Cooldown, ignores normal attack rules
+            // PRECISION PARRY: Tightened the window for better timing
             if(knifeActive && !knifeReturning) {
                 parryAttempts++;
-                if(parryAttempts <= 2 && k.position.x < 1.0 && k.position.x > -3.0) {
+                // Window is now strictly in the center-left area
+                if(parryAttempts <= 2 && k.position.x < -0.5 && k.position.x > -1.8) {
                     knifeReturning = true; k.material.color.set(0xffd700);
-                    document.getElementById('msg').innerText = "PARRIED!!"; return;
+                    document.getElementById('msg').innerText = "PERFECT PARRY!!"; return;
                 }
                 return;
             }
 
             if(isPausing) return; 
 
-            // PLAYER TS: No Cooldown Spam
             if(isTS && document.body.classList.contains('ts-player')) {
                 ehp -= 1; upd(); p.position.x = 1; setTimeout(()=>p.position.x=-2, 50); return;
             }
 
-            // NORMAL: Strict 0.5s Cooldown
+            // SLOWER ATTACK: 0.75s Cooldown
             if(!canAttack || isTS || isRetreating || qteOn) { if(qteOn) qHit(); return; }
 
             canAttack = false;
@@ -94,46 +96,45 @@
             p.position.x = 1; 
             setTimeout(()=>p.position.x=-2, 100);
             
-            // Re-enables after 0.5 seconds exactly
             setTimeout(() => { 
                 if(!gOver && !isPausing && !isRetreating && !isTS && !qteOn) { 
                     canAttack = true; 
                     oraBtn.disabled = false; 
                 } else {
-                    // If a special move started while cooling down, keep canAttack false
                     canAttack = true; 
                 }
-            }, 500);
+            }, 750); // 0.75s Delay
         }
         
         function knifePhase() {
             if(gOver || isTS || isRetreating) return;
             isRetreating = true; isPausing = true; canAttack = false;
-            document.getElementById('msg').innerText = "LOOK OUT!";
+            document.getElementById('msg').innerText = "DIO PREPARES...";
             e.position.x = 5; oraBtn.disabled = true;
             
             setTimeout(() => {
                 isPausing = false; knifeActive = true; knifeReturning = false; parryAttempts = 0;
                 k.position.set(5, 0, 0); k.visible = true; k.material.color.set(0xcccccc);
                 oraBtn.disabled = false;
+                document.getElementById('msg').innerText = "TIME YOUR PARRY!";
 
                 const tLoop = setInterval(() => {
                     if(gOver || isTS) { clearInterval(tLoop); k.visible=false; return; }
                     if(!knifeReturning) {
-                        k.position.x -= 0.25; 
+                        k.position.x -= 0.28; 
                         if(k.position.x <= -2.5) { clearInterval(tLoop); endKnifePhase(true); }
                     } else {
-                        k.position.x += 0.55; 
+                        k.position.x += 0.6; 
                         if(k.position.x >= 5) { clearInterval(tLoop); endKnifePhase(false); }
                     }
                 }, 20);
-            }, 800); 
+            }, 1000); 
         }
 
         function endKnifePhase(hitPlayer) {
             k.visible = false; knifeActive = false;
-            if(hitPlayer) { php -= (diff=='hard'?30:20); document.getElementById('msg').innerText = "HIT!"; }
-            else { ehp -= 35; document.getElementById('msg').innerText = "DIO HIT!"; }
+            if(hitPlayer) { php -= (diff=='hard'?30:20); document.getElementById('msg').innerText = "TOO SLOW!"; }
+            else { ehp -= 35; document.getElementById('msg').innerText = "DIRECT HIT!"; }
             upd(); e.position.x = 2; isRetreating = false;
             canAttack = true; oraBtn.disabled = false;
         }
@@ -147,7 +148,7 @@
         function qOn() { 
             if(isRetreating || isTS) return;
             isPausing = true; canAttack = false;
-            document.getElementById('msg').innerText = "TIME IS STOPPING...";
+            document.getElementById('msg').innerText = "!!!";
             document.body.classList.add('aura-yellow');
             oraBtn.disabled = true;
             
@@ -155,11 +156,11 @@
                 isPausing = false; qteOn=true; qHits=0; rSize=200; 
                 document.getElementById('qte').style.display='block';
                 oraBtn.disabled = false;
-            }, 1000); 
+            }, 800); 
         }
 
         function qHit() { 
-            if(rSize>70&&rSize<100){ 
+            if(rSize>70 && rSize<95){ // Tighter QTE window
                 qHits++; rSize=200; 
                 if(qHits>=3){ qteOn=false; document.getElementById('qte').style.display='none'; document.body.classList.remove('aura-yellow'); playerTS(); }
             } else { qteOn=false; document.getElementById('qte').style.display='none'; document.body.classList.remove('aura-yellow'); dioTS(); }
@@ -195,7 +196,7 @@
         function animate() { 
             requestAnimationFrame(animate); 
             if(qteOn){ 
-                rSize -= (diff=='hard'? 3.5 : 2.5);
+                rSize -= (diff=='hard'? 3.8 : 3.0);
                 if(rSize<40) rSize=200; 
                 document.getElementById('r-circ').style.width=document.getElementById('r-circ').style.height=rSize+'px'; 
             } 
