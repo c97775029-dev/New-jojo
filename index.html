@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Coco Jumbo: Time Architect</title>
+    <title>Bizarre Legacy: Damage Indicator</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: monospace; touch-action: none; -webkit-user-select: none; }
@@ -13,14 +13,17 @@
         #ctrl { position: absolute; bottom: 30px; width: 100%; text-align: center; display: none; }
         button { padding: 12px; font-size: 14px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; margin: 5px; width: 120px; }
         .ts-active { filter: invert(1) hue-rotate(180deg); }
+        .dmg-popup { position: absolute; color: #ff0; font-weight: bold; font-size: 20px; pointer-events: none; text-shadow: 2px 2px #000; animation: floatUp 0.6s ease-out forwards; }
+        @keyframes floatUp { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-50px); opacity: 0; } }
     </style>
 </head>
 <body>
     <div id="menu">
-        <h2 style="color:gold">DIFFICULTY</h2>
+        <h2 style="color:gold">SELECT MODE</h2>
         <button style="background:#0f0" onclick="setDiff('easy')">EASY</button>
         <button style="background:#fa0" onclick="setDiff('med')">MEDIUM</button>
         <button style="background:#f00; color:#fff" onclick="setDiff('hard')">HARD</button>
+        <button style="background:#555; color:#fff; border: 2px solid gold;" onclick="setDiff('dummy')">DUMMY MODE</button>
     </div>
     <div id="charMenu" style="display:none">
         <h2 style="color:gold">SELECT STAND</h2>
@@ -30,7 +33,7 @@
     <div id="ui">
         <div style="display:flex;justify-content:space-around">
             <div id="pName">PLAYER</div><div class="bar-bg"><div id="pBar"></div></div>
-            <div>DIO</div><div class="bar-bg"><div id="eBar"></div></div>
+            <div id="eName">DIO</div><div class="bar-bg"><div id="eBar"></div></div>
         </div>
         <p id="msg" style="color:gold">FIGHT!</p>
     </div>
@@ -49,10 +52,25 @@
         const p = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0x0066ff})); p.position.x = -2; s.add(p);
         const e = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0xff0000})); e.position.x = 2; s.add(e);
         
-        let php=100, maxPHP=100, ehp=100, gOver=false, isTS=false, isAdmin=false, diff='';
+        let php=100, maxPHP=100, ehp=100, gOver=false, isTS=false, isAdmin=false, diff='', isDummy=false;
         let activeKnives = [];
 
-        function setDiff(m) { diff=m; document.getElementById('menu').style.display='none'; document.getElementById('charMenu').style.display='block'; }
+        function showDamage(val, x, color="#ff0") {
+            const div = document.createElement('div');
+            div.className = 'dmg-popup';
+            div.innerText = val;
+            div.style.left = (window.innerWidth / 2 + (x * 100)) + 'px';
+            div.style.top = '50%';
+            div.style.color = color;
+            document.body.appendChild(div);
+            setTimeout(() => div.remove(), 600);
+        }
+
+        function setDiff(m) { 
+            diff=m; isDummy=(m==='dummy');
+            document.getElementById('menu').style.display='none'; 
+            document.getElementById('charMenu').style.display='block'; 
+        }
 
         function start(char) {
             if(char=='coco'){
@@ -61,14 +79,17 @@
                 document.getElementById('tsBtn').style.display = 'inline-block';
                 document.getElementById('knfBtn').style.display = 'inline-block';
             }
+            if(isDummy) { document.getElementById('eName').innerText = "DUMMY"; ehp = 999999; }
             document.getElementById('charMenu').style.display='none';
             document.getElementById('ui').style.display=document.getElementById('ctrl').style.display='block';
-            if(!isAdmin) setInterval(dioAtk, 1500);
+            if(!isDummy && !isAdmin) setInterval(dioAtk, 1500);
         }
 
         document.getElementById('atkBtn').onclick = () => {
             if(gOver) return;
-            ehp -= isAdmin ? 100 : 5; upd();
+            let d = isAdmin ? 1000 : 5;
+            ehp -= d; upd();
+            showDamage(d, e.position.x);
             p.position.x = -1; setTimeout(()=>p.position.x=-2, 50);
         };
 
@@ -82,34 +103,41 @@
             const knf = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.1), new THREE.MeshStandardMaterial({color: 0xcccccc}));
             knf.position.set(p.position.x + 0.5, p.position.y + 0.5, 0);
             s.add(knf);
-            
             let knfObj = { mesh: knf, launched: !isTS };
-            if (isTS) {
-                // Move forward slightly then stop
-                knf.position.x += 0.8;
-            }
+            if (isTS) { knf.position.x += 0.8; }
             activeKnives.push(knfObj);
         };
 
-        function dioAtk() { if(!isTS && !gOver) { e.position.x=0; php-=5; upd(); setTimeout(()=>e.position.x=2, 100); }}
+        function dioAtk() { 
+            if(!isTS && !gOver && !isDummy) { 
+                e.position.x=0; php-=5; upd(); 
+                showDamage(5, p.position.x, "#f00");
+                setTimeout(()=>e.position.x=2, 100); 
+            }
+        }
 
         function upd() {
+            if(isDummy && ehp < 1000) ehp = 999999;
+            document.getElementById('eBar').style.width = isDummy ? '100%' : Math.max(0,ehp)+'%';
             document.getElementById('pBar').style.width=(php/maxPHP*100)+'%';
-            document.getElementById('eBar').style.width=Math.max(0,ehp)+'%';
-            if(ehp<=0){ gOver=true; document.getElementById('retry').style.display='block'; document.getElementById('st').innerText="DIO DEFEATED"; }
+            if(ehp<=0 && !isDummy){ gOver=true; document.getElementById('retry').style.display='block'; document.getElementById('st').innerText="DIO DEFEATED"; }
         }
 
         function animate() {
             requestAnimationFrame(animate);
             activeKnives.forEach((kObj, index) => {
                 if (!isTS || kObj.launched) {
-                    kObj.mesh.position.x += 0.2;
-                    if (kObj.mesh.position.x > 1.8 && kObj.mesh.position.x < 2.2) {
-                        ehp -= isAdmin ? 50 : 10; upd();
+                    kObj.mesh.position.x += 0.25;
+                    if (kObj.mesh.position.x > 1.8 && kObj.mesh.position.x < 2.5) {
+                        let kd = isAdmin ? 500 : 20;
+                        ehp -= kd; upd();
+                        showDamage(kd, e.position.x);
                         s.remove(kObj.mesh);
                         activeKnives.splice(index, 1);
+                    } else if(kObj.mesh.position.x > 10) { 
+                        s.remove(kObj.mesh); 
+                        activeKnives.splice(index, 1); 
                     }
-                    if(kObj.mesh.position.x > 10) { s.remove(kObj.mesh); activeKnives.splice(index, 1); }
                 }
             });
             r.render(s, c);
