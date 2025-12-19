@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bizarre Legacy: Telegraph Update</title>
+    <title>Bizarre Legacy: Fast Response</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: monospace; touch-action: none; -webkit-user-select: none; }
@@ -18,8 +18,7 @@
         button:disabled { background: #444 !important; opacity: 0.7; }
         .ts-player { filter: hue-rotate(260deg); }
         .ts-dio { filter: invert(1); }
-        /* Aura Effect */
-        .aura-yellow { box-shadow: 0 0 50px gold; border: 2px solid gold; }
+        .aura-yellow { box-shadow: 0 0 60px gold inset, 0 0 30px yellow; }
     </style>
 </head>
 <body>
@@ -63,16 +62,18 @@
             document.getElementById('ui').style.display=document.getElementById('ctrl').style.display='block';
             setInterval(eAtk, diff=='easy'?8000 : (diff=='med'?5000:3000));
             setInterval(knifePhase, 9000);
-            setInterval(() => { if(!gOver && !isTS && (Date.now() - lastTS > 12000)) qOn(); }, 5000);
+            // Time Stop frequency increased to 10 seconds
+            setInterval(() => { if(!gOver && !isTS && (Date.now() - lastTS > 10000)) qOn(); }, 4000);
         }
 
         function go() { 
             if(gOver || isPausing) return;
 
+            // PARRY LOGIC: Overrides normal cooldown
             if(knifeActive && !knifeReturning) {
                 parryAttempts++;
-                // Window check (Wide for easier parry)
-                if(parryAttempts <= 2 && k.position.x < -0.2 && k.position.x > -2.8) {
+                // Extremely generous parry window to fix control lag
+                if(parryAttempts <= 2 && k.position.x < 1.0 && k.position.x > -3.0) {
                     knifeReturning = true; k.material.color.set(0xffd700);
                     document.getElementById('msg').innerText = "PARRIED!!"; return;
                 }
@@ -83,6 +84,7 @@
                 ehp -= 1; upd(); p.position.x = 1; setTimeout(()=>p.position.x=-2, 50); return;
             }
 
+            // Normal Attack
             if(!canAttack || isTS || isRetreating || qteOn) { if(qteOn) qHit(); return; }
 
             canAttack = false; oraBtn.disabled = true; ehp -= 5; upd();
@@ -93,32 +95,32 @@
         function knifePhase() {
             if(gOver || isTS) return;
             isPausing = true; isRetreating = true;
-            document.getElementById('msg').innerText = "DIO RETREATS...";
+            document.getElementById('msg').innerText = "LOOK OUT!";
             e.position.x = 5; 
             
             setTimeout(() => {
                 isPausing = false;
                 knifeActive = true; knifeReturning = false; parryAttempts = 0;
                 k.position.set(5, 0, 0); k.visible = true; k.material.color.set(0xcccccc);
-                document.getElementById('msg').innerText = "PARRY THE KNIFE!";
+                oraBtn.disabled = false; // Force button enabled for parry
 
                 const tLoop = setInterval(() => {
                     if(gOver || isTS) { clearInterval(tLoop); k.visible=false; return; }
                     if(!knifeReturning) {
-                        k.position.x -= 0.22; // SLOWER KNIFE
+                        k.position.x -= 0.25; 
                         if(k.position.x <= -2.5) {
                             clearInterval(tLoop); k.visible = false; knifeActive = false;
                             php -= (diff=='hard'?30:20); upd(); e.position.x = 2; isRetreating = false;
                         }
                     } else {
-                        k.position.x += 0.5; // RETURN SPEED
+                        k.position.x += 0.55; 
                         if(k.position.x >= 5) {
                             clearInterval(tLoop); k.visible = false; knifeActive = false;
                             ehp -= 35; upd(); e.position.x = 2; isRetreating = false;
                         }
                     }
                 }, 20);
-            }, 1000); // 1s Pause for setup
+            }, 800); 
         }
 
         function eAtk() { 
@@ -129,19 +131,18 @@
 
         function qOn() { 
             isPausing = true;
-            document.getElementById('msg').innerText = "DIO IS STOPPING TIME!";
-            // YELLOW AURA START
+            document.getElementById('msg').innerText = "TIME IS STOPPING...";
             document.body.classList.add('aura-yellow');
             
             setTimeout(() => {
                 isPausing = false;
                 qteOn=true; qHits=0; rSize=200; 
                 document.getElementById('qte').style.display='block';
-            }, 1200); // Longer warning
+            }, 1000); 
         }
 
         function qHit() { 
-            if(rSize>75&&rSize<95){ 
+            if(rSize>70&&rSize<100){ 
                 qHits++; rSize=200; 
                 if(qHits>=3){ 
                     qteOn=false; 
@@ -159,13 +160,13 @@
 
         function playerTS() {
             isTS=true; lastTS = Date.now(); document.body.classList.add('ts-player');
-            document.getElementById('msg').innerText = "TIME IS STOPPED (YOURS)";
-            setTimeout(() => { isTS = false; document.body.classList.remove('ts-player'); }, 6000); // Longer TS
+            document.getElementById('msg').innerText = "STAR PLATINUM!";
+            setTimeout(() => { isTS = false; document.body.classList.remove('ts-player'); }, 6000);
         }
 
         function dioTS() {
             isTS=true; lastTS = Date.now(); document.body.classList.add('ts-dio');
-            document.getElementById('msg').innerText = "THE WORLD!!";
+            document.getElementById('msg').innerText = "ZA WARUDO!!";
             let h=0; const l=setInterval(()=>{
                 if(gOver){clearInterval(l);return;}
                 e.position.x=-1; php-=4; upd(); setTimeout(()=>e.position.x=2,100); h++;
@@ -181,7 +182,7 @@
         function animate() { 
             requestAnimationFrame(animate); 
             if(qteOn){ 
-                rSize -= (diff=='hard'? 3.5 : 2.5); // Slower circle shrink
+                rSize -= (diff=='hard'? 3.5 : 2.5);
                 if(rSize<40) rSize=200; 
                 document.getElementById('r-circ').style.width=document.getElementById('r-circ').style.height=rSize+'px'; 
             } 
