@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bizarre Legacy: Damage Indicator</title>
+    <title>Bizarre Legacy: AI & Combo Evolution</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: monospace; touch-action: none; -webkit-user-select: none; }
@@ -13,8 +13,9 @@
         #ctrl { position: absolute; bottom: 30px; width: 100%; text-align: center; display: none; }
         button { padding: 12px; font-size: 14px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; margin: 5px; width: 120px; }
         .ts-active { filter: invert(1) hue-rotate(180deg); }
-        .dmg-popup { position: absolute; color: #ff0; font-weight: bold; font-size: 20px; pointer-events: none; text-shadow: 2px 2px #000; animation: floatUp 0.6s ease-out forwards; }
-        @keyframes floatUp { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-50px); opacity: 0; } }
+        .dmg-popup { position: absolute; color: #ff0; font-weight: bold; font-size: 22px; pointer-events: none; text-shadow: 2px 2px #000; animation: floatUp 0.8s ease-out forwards; z-index: 100; }
+        .stun-text { color: #f00 !important; font-size: 30px !important; }
+        @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-80px) scale(1.2); opacity: 0; } }
     </style>
 </head>
 <body>
@@ -23,7 +24,7 @@
         <button style="background:#0f0" onclick="setDiff('easy')">EASY</button>
         <button style="background:#fa0" onclick="setDiff('med')">MEDIUM</button>
         <button style="background:#f00; color:#fff" onclick="setDiff('hard')">HARD</button>
-        <button style="background:#555; color:#fff; border: 2px solid gold;" onclick="setDiff('dummy')">DUMMY MODE</button>
+        <button style="background:#555; color:#fff" onclick="setDiff('dummy')">DUMMY MODE</button>
     </div>
     <div id="charMenu" style="display:none">
         <h2 style="color:gold">SELECT STAND</h2>
@@ -35,7 +36,7 @@
             <div id="pName">PLAYER</div><div class="bar-bg"><div id="pBar"></div></div>
             <div id="eName">DIO</div><div class="bar-bg"><div id="eBar"></div></div>
         </div>
-        <p id="msg" style="color:gold">FIGHT!</p>
+        <p id="msg" style="color:gold">READY?</p>
     </div>
     <div id="retry" style="display:none"><h2 id="st"></h2><button onclick="location.reload()">RETRY</button></div>
     <div id="ctrl">
@@ -54,23 +55,21 @@
         
         let php=100, maxPHP=100, ehp=100, gOver=false, isTS=false, isAdmin=false, diff='', isDummy=false;
         let activeKnives = [];
+        let pHits = 0, eHits = 0, pComboDmg = 0, eComboDmg = 0;
+        let pStunned = false, eStunned = false;
 
-        function showDamage(val, x, color="#ff0") {
+        function showDamage(val, x, color="#ff0", isCombo=false) {
             const div = document.createElement('div');
-            div.className = 'dmg-popup';
-            div.innerText = val;
+            div.className = 'dmg-popup' + (isCombo ? ' stun-text' : '');
+            div.innerText = isCombo ? "TOTAL: " + val : val;
             div.style.left = (window.innerWidth / 2 + (x * 100)) + 'px';
-            div.style.top = '50%';
+            div.style.top = '40%';
             div.style.color = color;
             document.body.appendChild(div);
-            setTimeout(() => div.remove(), 600);
+            setTimeout(() => div.remove(), 800);
         }
 
-        function setDiff(m) { 
-            diff=m; isDummy=(m==='dummy');
-            document.getElementById('menu').style.display='none'; 
-            document.getElementById('charMenu').style.display='block'; 
-        }
+        function setDiff(m) { diff=m; isDummy=(m==='dummy'); document.getElementById('menu').style.display='none'; document.getElementById('charMenu').style.display='block'; }
 
         function start(char) {
             if(char=='coco'){
@@ -79,19 +78,70 @@
                 document.getElementById('tsBtn').style.display = 'inline-block';
                 document.getElementById('knfBtn').style.display = 'inline-block';
             }
-            if(isDummy) { document.getElementById('eName').innerText = "DUMMY"; ehp = 999999; }
+            if(isDummy) { ehp = 999999; }
             document.getElementById('charMenu').style.display='none';
             document.getElementById('ui').style.display=document.getElementById('ctrl').style.display='block';
-            if(!isDummy && !isAdmin) setInterval(dioAtk, 1500);
+            if(!isDummy) runAI();
+        }
+
+        // Logic for Combo Tracking
+        function applyHit(target, dmg, color) {
+            if(target === 'e') {
+                ehp -= dmg; pComboDmg += dmg; pHits++;
+                if(pHits >= 3) {
+                    eStunned = true; showDamage(pComboDmg, e.position.x, "#ff0", true);
+                    pHits = 0; pComboDmg = 0;
+                    setTimeout(() => eStunned = false, 2000);
+                } else { showDamage(dmg, e.position.x, color); }
+            } else {
+                if(isAdmin) return;
+                php -= dmg; eComboDmg += dmg; eHits++;
+                if(eHits >= 3) {
+                    pStunned = true; showDamage(eComboDmg, p.position.x, "#f00", true);
+                    eHits = 0; eComboDmg = 0;
+                    setTimeout(() => pStunned = false, 2000);
+                } else { showDamage(dmg, p.position.x, color); }
+            }
+            upd();
         }
 
         document.getElementById('atkBtn').onclick = () => {
-            if(gOver) return;
-            let d = isAdmin ? 1000 : 5;
-            ehp -= d; upd();
-            showDamage(d, e.position.x);
+            if(gOver || pStunned) return;
+            eHits = 0; eComboDmg = 0; // Reset DIO's combo if we hit him
+            applyHit('e', isAdmin ? 1000 : 5, isAdmin ? "#0f0" : "#ff0");
             p.position.x = -1; setTimeout(()=>p.position.x=-2, 50);
         };
+
+        // DIO AI BRAIN
+        async function runAI() {
+            while(!gOver) {
+                await new Promise(r => setTimeout(r, Math.random() * 1000 + 500));
+                if(isTS || eStunned || isDummy) continue;
+
+                let decision = Math.random();
+                if(diff === 'hard') {
+                    // Smart Aggression
+                    if(decision < 0.6) dioMelee();
+                    else if(decision < 0.8) dioKnifeBarrage();
+                    else dioZaWarudo();
+                } else {
+                    // Random Easy/Med Behavior
+                    if(decision < 0.4) dioMelee();
+                }
+            }
+        }
+
+        function dioMelee() {
+            if(isTS || eStunned) return;
+            e.position.x = 0;
+            applyHit('p', 8, "#f00");
+            pHits = 0; pComboDmg = 0; // Break Player combo
+            setTimeout(() => e.position.x = 2, 100);
+        }
+
+        // ... simplified Knife/TS for demo ...
+        function dioKnifeBarrage() { document.getElementById('msg').innerText = "DIO THREW KNIVES!"; /* Logic similar to previous versions */ }
+        function dioZaWarudo() { isTS = true; document.body.classList.add('ts-active'); setTimeout(()=> {isTS=false; document.body.classList.remove('ts-active');}, 3000); }
 
         document.getElementById('tsBtn').onclick = () => {
             isTS = !isTS;
@@ -103,43 +153,35 @@
             const knf = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.1), new THREE.MeshStandardMaterial({color: 0xcccccc}));
             knf.position.set(p.position.x + 0.5, p.position.y + 0.5, 0);
             s.add(knf);
-            let knfObj = { mesh: knf, launched: !isTS };
-            if (isTS) { knf.position.x += 0.8; }
-            activeKnives.push(knfObj);
+            activeKnives.push({ mesh: knf, launched: !isTS });
         };
-
-        function dioAtk() { 
-            if(!isTS && !gOver && !isDummy) { 
-                e.position.x=0; php-=5; upd(); 
-                showDamage(5, p.position.x, "#f00");
-                setTimeout(()=>e.position.x=2, 100); 
-            }
-        }
 
         function upd() {
             if(isDummy && ehp < 1000) ehp = 999999;
-            document.getElementById('eBar').style.width = isDummy ? '100%' : Math.max(0,ehp)+'%';
+            document.getElementById('eBar').style.width = isDummy ? '100%' : (ehp/100*100)+'%';
             document.getElementById('pBar').style.width=(php/maxPHP*100)+'%';
-            if(ehp<=0 && !isDummy){ gOver=true; document.getElementById('retry').style.display='block'; document.getElementById('st').innerText="DIO DEFEATED"; }
+            if(php<=0) { gOver=true; document.getElementById('retry').style.display='block'; document.getElementById('st').innerText="RETIRED"; }
+            if(ehp<=0 && !isDummy) { gOver=true; document.getElementById('retry').style.display='block'; document.getElementById('st').innerText="DIO DEFEATED"; }
         }
 
         function animate() {
             requestAnimationFrame(animate);
+            let knifeHitsThisFrame = 0;
             activeKnives.forEach((kObj, index) => {
                 if (!isTS || kObj.launched) {
-                    kObj.mesh.position.x += 0.25;
+                    kObj.mesh.position.x += 0.3;
                     if (kObj.mesh.position.x > 1.8 && kObj.mesh.position.x < 2.5) {
                         let kd = isAdmin ? 500 : 20;
-                        ehp -= kd; upd();
-                        showDamage(kd, e.position.x);
-                        s.remove(kObj.mesh);
-                        activeKnives.splice(index, 1);
-                    } else if(kObj.mesh.position.x > 10) { 
-                        s.remove(kObj.mesh); 
-                        activeKnives.splice(index, 1); 
+                        if(isTS) knifeHitsThisFrame += kd; // Prep for mass total
+                        else applyHit('e', kd, "#ff0");
+                        s.remove(kObj.mesh); activeKnives.splice(index, 1);
                     }
                 }
             });
+            if(!isTS && knifeHitsThisFrame > 0) {
+                 showDamage(knifeHitsThisFrame, e.position.x, "#0f0", true);
+                 ehp -= knifeHitsThisFrame; upd();
+            }
             r.render(s, c);
         }
         animate();
