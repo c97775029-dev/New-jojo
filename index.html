@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bizarre Legacy: Barrage Mode</title>
+    <title>Bizarre Legacy: High Speed</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: monospace; touch-action: none; -webkit-user-select: none; }
@@ -68,35 +68,37 @@
         function go() { 
             if(gOver) return;
 
+            // Knife Parry (Still 2 attempt limit)
             if(knifeActive && !knifeReturning) {
                 parryAttempts++;
-                if(parryAttempts > 2) return;
+                if(parryAttempts > 2) {
+                    document.getElementById('msg').innerText = "MISSED!";
+                    return;
+                }
                 if(k.position.x < -0.5 && k.position.x > -2.5) {
                     knifeReturning = true; k.material.color.set(0xffd700);
                     document.getElementById('msg').innerText = "PARRIED!!"; return;
                 }
             }
 
-            // --- TIME STOP BARRAGE (Low damage, No Cooldown) ---
+            // Player SP:TW Spam (No Cooldown, Low Damage)
             if(isTS && document.body.classList.contains('ts-player')) {
-                p.position.x = 1; 
-                ehp -= 1; // <--- Lowered damage
-                upd(); 
+                p.position.x = 1; ehp -= 1; upd(); 
                 setTimeout(()=>p.position.x=-2, 50); 
                 return;
             }
 
+            // Standard Attack (0.5s Cooldown, 5 Damage)
             if(!canAttack || isTS || isRetreating || qteOn) { 
                 if(qteOn) qHit(); 
                 return; 
             }
 
-            // --- NORMAL ATTACK (High damage, 2s Cooldown) ---
             canAttack = false;
             oraBtn.disabled = true;
             p.position.x=1; ehp-=5; upd(); 
             setTimeout(()=> { p.position.x=-2; }, 100);
-            setTimeout(() => { if(!gOver) { canAttack = true; oraBtn.disabled = false; } }, 2000);
+            setTimeout(() => { if(!gOver) { canAttack = true; oraBtn.disabled = false; } }, 500); // 0.5s Cooldown
         }
         
         function knifePhase() {
@@ -123,12 +125,18 @@
             }, 500);
         }
 
-        function eAtk() { if(gOver||isTS||isRetreating) return; e.position.x=-1; php-=(diff=='hard'?15:8); upd(); setTimeout(()=>e.position.x=2,100); }
+        // DIO cannot attack if he is in the middle of a Knife Phase or initiating a Time Stop
+        function eAtk() { 
+            if(gOver || isTS || isRetreating || qteOn) return; 
+            e.position.x=-1; php-=(diff=='hard'?15:8); 
+            upd(); 
+            setTimeout(()=>e.position.x=2, 100); 
+        }
 
         function qOn() { 
             qteOn=true; qHits=0; rSize=200; 
             document.getElementById('qte').style.display='block';
-            document.getElementById('msg').innerText = "COUNTER THE WORLD!";
+            document.getElementById('msg').innerText = "COUNTER!";
         }
 
         function qHit() { 
@@ -141,7 +149,7 @@
         function playerTS() {
             isTS=true; lastTS = Date.now();
             document.body.classList.add('ts-player');
-            document.getElementById('msg').innerText = "MUDA MUDA MUDA?? ORA!!";
+            document.getElementById('msg').innerText = "MUDA MUDA? ORA!!";
             setTimeout(() => { 
                 isTS = false; document.body.classList.remove('ts-player'); 
                 document.getElementById('msg').innerText = "TIME RESUMES"; 
