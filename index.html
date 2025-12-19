@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bizarre Legacy: Fast Response</title>
+    <title>Bizarre Legacy: Logic Lock</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: monospace; touch-action: none; -webkit-user-select: none; }
@@ -61,18 +61,17 @@
             diff=m; document.getElementById('menu').style.display='none';
             document.getElementById('ui').style.display=document.getElementById('ctrl').style.display='block';
             setInterval(eAtk, diff=='easy'?8000 : (diff=='med'?5000:3000));
-            setInterval(knifePhase, 9000);
-            // Time Stop frequency increased to 10 seconds
-            setInterval(() => { if(!gOver && !isTS && (Date.now() - lastTS > 10000)) qOn(); }, 4000);
+            // Move triggers check DIO's state first
+            setInterval(() => { if(!isRetreating && !isTS && !isPausing && !qteOn) knifePhase(); }, 9000);
+            setInterval(() => { if(!gOver && !isTS && !isRetreating && !isPausing && !qteOn && (Date.now() - lastTS > 10000)) qOn(); }, 4000);
         }
 
         function go() { 
-            if(gOver || isPausing) return;
+            if(gOver) return;
 
-            // PARRY LOGIC: Overrides normal cooldown
+            // Parry takes priority and works even if isPausing is true (specifically for the knife standoff)
             if(knifeActive && !knifeReturning) {
                 parryAttempts++;
-                // Extremely generous parry window to fix control lag
                 if(parryAttempts <= 2 && k.position.x < 1.0 && k.position.x > -3.0) {
                     knifeReturning = true; k.material.color.set(0xffd700);
                     document.getElementById('msg').innerText = "PARRIED!!"; return;
@@ -80,21 +79,22 @@
                 return;
             }
 
+            if(isPausing) return; // Block normal ORA during standoff setup
+
             if(isTS && document.body.classList.contains('ts-player')) {
                 ehp -= 1; upd(); p.position.x = 1; setTimeout(()=>p.position.x=-2, 50); return;
             }
 
-            // Normal Attack
             if(!canAttack || isTS || isRetreating || qteOn) { if(qteOn) qHit(); return; }
 
             canAttack = false; oraBtn.disabled = true; ehp -= 5; upd();
             p.position.x = 1; setTimeout(()=>p.position.x=-2, 100);
-            setTimeout(() => { if(!gOver && !isPausing) { canAttack = true; oraBtn.disabled = false; } }, 500);
+            setTimeout(() => { if(!gOver && !isPausing && !isRetreating) { canAttack = true; oraBtn.disabled = false; } }, 500);
         }
         
         function knifePhase() {
-            if(gOver || isTS) return;
-            isPausing = true; isRetreating = true;
+            if(gOver || isTS || isRetreating) return;
+            isRetreating = true; isPausing = true;
             document.getElementById('msg').innerText = "LOOK OUT!";
             e.position.x = 5; 
             
@@ -102,25 +102,35 @@
                 isPausing = false;
                 knifeActive = true; knifeReturning = false; parryAttempts = 0;
                 k.position.set(5, 0, 0); k.visible = true; k.material.color.set(0xcccccc);
-                oraBtn.disabled = false; // Force button enabled for parry
+                oraBtn.disabled = false;
 
                 const tLoop = setInterval(() => {
                     if(gOver || isTS) { clearInterval(tLoop); k.visible=false; return; }
                     if(!knifeReturning) {
                         k.position.x -= 0.25; 
                         if(k.position.x <= -2.5) {
-                            clearInterval(tLoop); k.visible = false; knifeActive = false;
-                            php -= (diff=='hard'?30:20); upd(); e.position.x = 2; isRetreating = false;
+                            clearInterval(tLoop); endKnifePhase(true);
                         }
                     } else {
                         k.position.x += 0.55; 
                         if(k.position.x >= 5) {
-                            clearInterval(tLoop); k.visible = false; knifeActive = false;
-                            ehp -= 35; upd(); e.position.x = 2; isRetreating = false;
+                            clearInterval(tLoop); endKnifePhase(false);
                         }
                     }
                 }, 20);
             }, 800); 
+        }
+
+        function endKnifePhase(hitPlayer) {
+            k.visible = false; knifeActive = false;
+            if(hitPlayer) { php -= (diff=='hard'?30:20); document.getElementById('msg').innerText = "HIT!"; }
+            else { ehp -= 35; document.getElementById('msg').innerText = "DIO HIT!"; }
+            upd();
+            e.position.x = 2; 
+            isRetreating = false;
+            // CRITICAL FIX: Re-enable controls
+            canAttack = true; 
+            oraBtn.disabled = false;
         }
 
         function eAtk() { 
@@ -130,6 +140,7 @@
         }
 
         function qOn() { 
+            if(isRetreating || isTS) return;
             isPausing = true;
             document.getElementById('msg').innerText = "TIME IS STOPPING...";
             document.body.classList.add('aura-yellow');
@@ -145,23 +156,22 @@
             if(rSize>70&&rSize<100){ 
                 qHits++; rSize=200; 
                 if(qHits>=3){ 
-                    qteOn=false; 
-                    document.getElementById('qte').style.display='none'; 
-                    document.body.classList.remove('aura-yellow');
-                    playerTS(); 
+                    qteOn=false; document.getElementById('qte').style.display='none'; 
+                    document.body.classList.remove('aura-yellow'); playerTS(); 
                 }
             } else { 
-                qteOn=false; 
-                document.getElementById('qte').style.display='none'; 
-                document.body.classList.remove('aura-yellow');
-                dioTS(); 
+                qteOn=false; document.getElementById('qte').style.display='none'; 
+                document.body.classList.remove('aura-yellow'); dioTS(); 
             }
         }
 
         function playerTS() {
             isTS=true; lastTS = Date.now(); document.body.classList.add('ts-player');
             document.getElementById('msg').innerText = "STAR PLATINUM!";
-            setTimeout(() => { isTS = false; document.body.classList.remove('ts-player'); }, 6000);
+            setTimeout(() => { 
+                isTS = false; document.body.classList.remove('ts-player'); 
+                canAttack = true; oraBtn.disabled = false; 
+            }, 6000);
         }
 
         function dioTS() {
@@ -170,7 +180,10 @@
             let h=0; const l=setInterval(()=>{
                 if(gOver){clearInterval(l);return;}
                 e.position.x=-1; php-=4; upd(); setTimeout(()=>e.position.x=2,100); h++;
-                if(h>=10){clearInterval(l); isTS=false; document.body.classList.remove('ts-dio');}
+                if(h>=10){
+                    clearInterval(l); isTS=false; document.body.classList.remove('ts-dio');
+                    canAttack = true; oraBtn.disabled = false;
+                }
             }, 800);
         }
 
