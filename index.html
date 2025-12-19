@@ -1,159 +1,134 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bizarre Legacy: Perfected V2</title>
+    <title>Bizarre Legacy: Core Mechanics</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', Courier, monospace; touch-action: none; -webkit-user-select: none; }
-        #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: #fff; display: none; pointer-events: none; z-index: 5; }
-        .bar-bg { width: 140px; height: 15px; border: 2px solid #fff; background: #333; margin: 5px auto; border-radius: 5px; overflow: hidden; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: monospace; touch-action: none; -webkit-user-select: none; }
+        #menu, #retry { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); background: rgba(0,0,0,0.9); padding: 20px; border: 4px solid gold; text-align: center; color: #fff; z-index: 99; width: 280px; border-radius: 15px; }
+        #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: #fff; display: none; pointer-events: none; }
+        .bar-bg { width: 120px; height: 12px; border: 2px solid #fff; background: #333; margin: 5px auto; }
         #pBar, #eBar { width: 100%; height: 100%; transition: 0.1s; }
-        #pBar { background: #0066ff; box-shadow: 0 0 10px #0066ff; } 
-        #eBar { background: #ff0000; box-shadow: 0 0 10px #ff0000; }
-        #msg { color: gold; font-size: 22px; text-shadow: 2px 2px #000; font-weight: bold; margin-top: 10px; }
-        #ctrl { position: absolute; bottom: 40px; width: 100%; text-align: center; display: none; z-index: 10; }
-        #qte { position: absolute; top: 50%; left: 50%; display: none; transform: translate(-50%, -50%); }
+        #pBar { background: #0066ff; } #eBar { background: #ff0000; }
+        #qte { position: absolute; top: 50%; left: 50%; display: none; }
         #t-circ { width: 80px; height: 80px; border: 4px solid #fff; border-radius: 50%; position: absolute; transform: translate(-50%,-50%); }
         #r-circ { width: 200px; height: 200px; border: 4px solid gold; border-radius: 50%; position: absolute; transform: translate(-50%,-50%); }
-        #oraBtn { padding: 25px 50px; font-size: 28px; font-weight: bold; border-radius: 15px; border: none; cursor: pointer; background: #f05; color: #fff; box-shadow: 0 6px #900; }
-        #oraBtn:active { transform: translateY(4px); box-shadow: 0 2px #900; }
-        #oraBtn:disabled { background: #444; box-shadow: 0 6px #222; opacity: 0.7; }
-        #combo { position: absolute; left: 20px; top: 40%; color: gold; font-size: 45px; font-weight: 900; font-style: italic; display: none; text-shadow: 3px 3px #f00; pointer-events: none; }
-        .ts-player { filter: hue-rotate(260deg) brightness(0.8) contrast(1.4); }
-        .ts-dio { filter: invert(1) grayscale(1); }
+        #ctrl { position: absolute; bottom: 30px; width: 100%; text-align: center; display: none; }
+        button { padding: 15px 30px; font-size: 18px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; margin: 5px; width: 100%; }
+        button:disabled { background: #444 !important; opacity: 0.7; }
+        .ts-player { filter: hue-rotate(260deg); }
+        .ts-dio { filter: invert(1); }
     </style>
 </head>
 <body>
+    <div id="menu">
+        <h2 style="color:gold">BIZARRE LEGACY</h2>
+        <button style="background:#0f0" onclick="start('easy')">EASY</button>
+        <button style="background:#fa0" onclick="start('med')">MEDIUM</button>
+        <button style="background:#f00;color:#fff" onclick="start('hard')">HARD</button>
+    </div>
     <div id="ui">
         <div style="display:flex;justify-content:space-around">
             <div>JOTARO<div class="bar-bg"><div id="pBar"></div></div></div>
             <div>DIO<div class="bar-bg"><div id="eBar"></div></div></div>
         </div>
-        <div id="msg">YARE YARE DAZE...</div>
+        <p id="msg" style="color:gold;font-size:18px">SURVIVE</p>
     </div>
-    <div id="combo">0 ORA!</div>
     <div id="qte"><div id="t-circ"></div><div id="r-circ"></div></div>
-    <div id="ctrl"><button id="oraBtn">ORA!</button></div>
-    
-    <div id="menu" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:#fff;background:rgba(0,0,0,0.9);padding:40px;border:4px solid gold; border-radius: 20px; z-index: 100;">
-        <h1 style="color:gold; font-size: 40px;">BIZARRE LEGACY</h1>
-        <p>JOTARO VS DIO</p>
-        <button onclick="start()" style="background:gold; color:black; padding: 15px 30px; font-size: 20px; border-radius: 10px; cursor:pointer; font-weight:bold;">COMMENCE FIGHT</button>
-    </div>
+    <div id="retry" style="display:none"><h2 id="st"></h2><button onclick="location.reload()">RETRY</button></div>
+    <div id="ctrl"><button id="oraBtn" style="background:#f05;color:#fff;width:150px">ORA!</button></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
+        document.addEventListener('touchstart', (e) => { if(e.touches.length > 1) e.preventDefault(); }, {passive: false});
+
         const s = new THREE.Scene(), c = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000), r = new THREE.WebGLRenderer({antialias:true});
         r.setSize(window.innerWidth, window.innerHeight); document.body.appendChild(r.domElement);
         s.add(new THREE.AmbientLight(0xffffff, 1)); c.position.z = 5;
 
         const p = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0x0066ff})); p.position.x = -2; s.add(p);
-        const e = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.2, 1.2), new THREE.MeshStandardMaterial({color: 0xff0000})); e.position.x = 2; s.add(e);
-        const k = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.1, 0.1), new THREE.MeshStandardMaterial({color: 0xcccccc})); k.visible = false; s.add(k);
+        const e = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0xff0000})); e.position.x = 2; s.add(e);
+        const k = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.1), new THREE.MeshStandardMaterial({color: 0xcccccc})); k.visible = false; s.add(k);
         
-        let php=100, ehp=100, gOver=false, isTS=false, qteOn=false, rSize=200, qHits=0, isRetreating=false, knifeActive=false, knifeReturning=false;
-        let parryAttempts = 0, lastTS = Date.now(), canAttack = true, shake = 0, combo = 0, comboTimer;
+        let php=100, ehp=100, gOver=false, isTS=false, qteOn=false, rSize=200, qHits=0, diff='', isRetreating=false, knifeActive=false, knifeReturning=false;
+        let parryAttempts = 0, lastTS = Date.now(), canAttack = true;
 
         const oraBtn = document.getElementById('oraBtn');
-        // iPad fix
         oraBtn.addEventListener('touchstart', (ev) => { ev.preventDefault(); go(); });
-        oraBtn.addEventListener('mousedown', (ev) => { if(!('ontouchstart' in window)) go(); });
 
-        function start() {
-            document.getElementById('menu').style.display='none';
+        function start(m) {
+            diff=m; document.getElementById('menu').style.display='none';
             document.getElementById('ui').style.display=document.getElementById('ctrl').style.display='block';
-            setInterval(eAtk, 3500); 
-            setInterval(knifePhase, 9000);
+            setInterval(eAtk, diff=='easy'?8000 : (diff=='med'?5000:3000));
+            setInterval(knifePhase, 8000);
             setInterval(() => { if(!gOver && !isTS && (Date.now() - lastTS > 12000)) qOn(); }, 4000);
         }
 
         function go() { 
             if(gOver) return;
 
-            // 1. Knife Parry Logic (2 tries, Unlimited Click Spam speed)
+            // Knife Parry (2 tries, no cooldown)
             if(knifeActive && !knifeReturning) {
                 parryAttempts++;
-                if(parryAttempts <= 2 && k.position.x < -0.5 && k.position.x > -2.2) {
+                if(parryAttempts <= 2 && k.position.x < -0.5 && k.position.x > -2.5) {
                     knifeReturning = true; k.material.color.set(0xffd700);
-                    document.getElementById('msg').innerText = "PARRIED!!"; shake = 0.3; return;
+                    document.getElementById('msg').innerText = "PARRIED!!"; return;
                 }
-                if(parryAttempts > 2) return; 
+                if(parryAttempts > 2) return;
             }
 
-            // 2. Your Time Stop (Zero Cooldown, Spam enabled)
+            // Time Stop Spam (No cooldown, 1 damage)
             if(isTS && document.body.classList.contains('ts-player')) {
-                attackAction(1); // 1 damage per hit during TS
+                ehp -= 1; upd(); 
+                p.position.x = 1; setTimeout(()=>p.position.x=-2, 50);
                 return;
             }
 
-            // 3. Normal Attack (0.5s Cooldown)
-            if(!canAttack || isTS || isRetreating || qteOn) { 
-                if(qteOn) qHit(); 
-                return; 
-            }
+            // Normal Attack (0.5s cooldown, 5 damage)
+            if(!canAttack || isTS || isRetreating || qteOn) { if(qteOn) qHit(); return; }
 
-            attackAction(5); // 5 damage normal
             canAttack = false;
             oraBtn.disabled = true;
-            setTimeout(() => { canAttack = true; oraBtn.disabled = false; }, 500); 
-        }
-
-        function attackAction(dmg) {
-            ehp -= dmg; flash(e); shake = 0.12; addCombo(); upd();
-            p.position.x = 0.5; setTimeout(()=>p.position.x=-2, 70);
-        }
-
-        function flash(obj) {
-            const orig = obj.material.color.getHex();
-            obj.material.color.set(0xffffff);
-            setTimeout(() => obj.material.color.set(orig), 50);
-        }
-
-        function addCombo() {
-            combo++;
-            const cb = document.getElementById('combo');
-            cb.innerText = combo + " ORA!"; cb.style.display = 'block';
-            clearTimeout(comboTimer);
-            comboTimer = setTimeout(() => { combo = 0; cb.style.display = 'none'; }, 1500);
+            ehp -= 5; upd();
+            p.position.x = 1; setTimeout(()=>p.position.x=-2, 100);
+            setTimeout(() => { if(!gOver) { canAttack = true; oraBtn.disabled = false; } }, 500);
         }
         
         function knifePhase() {
             if(gOver || isTS) return;
             isRetreating = true; knifeActive = true; knifeReturning = false; parryAttempts = 0;
-            e.position.x = 5; document.getElementById('msg').innerText = "WATCH OUT!";
+            e.position.x = 5; k.visible = false;
             setTimeout(() => {
-                k.position.set(5, 0, 0); k.visible = true;
+                k.position.set(5, 0, 0); k.visible = true; k.material.color.set(0xcccccc);
                 const tLoop = setInterval(() => {
                     if(gOver || isTS) { clearInterval(tLoop); k.visible=false; return; }
                     if(!knifeReturning) {
-                        k.position.x -= 0.32;
+                        k.position.x -= 0.3;
                         if(k.position.x <= -2.5) {
                             clearInterval(tLoop); k.visible = false; knifeActive = false;
-                            php -= 20; shake = 0.5; upd(); e.position.x = 2; isRetreating = false;
-                            document.getElementById('msg').innerText = "UGH!";
+                            php -= (diff=='hard'?30:20); upd(); e.position.x = 2; isRetreating = false;
                         }
                     } else {
-                        k.position.x += 0.75;
+                        k.position.x += 0.6;
                         if(k.position.x >= 5) {
                             clearInterval(tLoop); k.visible = false; knifeActive = false;
-                            ehp -= 30; flash(e); shake = 0.6; upd(); e.position.x = 2; isRetreating = false;
+                            ehp -= 35; upd(); e.position.x = 2; isRetreating = false;
                         }
                     }
                 }, 20);
-            }, 600);
+            }, 500);
         }
 
         function eAtk() { 
-            // DIO can't hit you if he's throwing knives or stopping time
             if(gOver || isTS || isRetreating || qteOn) return; 
-            e.position.x = -1; php -= 10; shake = 0.35; flash(p); upd(); 
-            setTimeout(()=>e.position.x=2, 100); 
+            e.position.x=-1; php-=(diff=='hard'?15:10); upd(); 
+            setTimeout(()=>e.position.x=2,100); 
         }
 
-        function qOn() { qteOn=true; qHits=0; rSize=200; document.getElementById('qte').style.display='block'; document.getElementById('msg').innerText = "COUNTER!!"; }
+        function qOn() { qteOn=true; qHits=0; rSize=200; document.getElementById('qte').style.display='block'; }
 
         function qHit() { 
-            if(rSize>70&&rSize<95){ 
+            if(rSize>75&&rSize<95){ 
                 qHits++; rSize=200; 
                 if(qHits>=3){ qteOn=false; document.getElementById('qte').style.display='none'; playerTS(); }
             } else { qteOn=false; document.getElementById('qte').style.display='none'; dioTS(); }
@@ -161,8 +136,8 @@
 
         function playerTS() {
             isTS=true; lastTS = Date.now(); document.body.classList.add('ts-player');
-            document.getElementById('msg').innerText = "STAR PLATINUM: THE WORLD!";
-            setTimeout(() => { isTS = false; document.body.classList.remove('ts-player'); document.getElementById('msg').innerText = "TIME RESUMES"; }, 5000);
+            document.getElementById('msg').innerText = "STAR PLATINUM!";
+            setTimeout(() => { isTS = false; document.body.classList.remove('ts-player'); }, 5000);
         }
 
         function dioTS() {
@@ -170,33 +145,17 @@
             document.getElementById('msg').innerText = "ZA WARUDO!!";
             let h=0; const l=setInterval(()=>{
                 if(gOver){clearInterval(l);return;}
-                e.position.x=-1; php-=5; flash(p); shake=0.25; upd();
-                setTimeout(()=>e.position.x=2,120); h++;
-                if(h>=8){clearInterval(l); isTS=false; document.body.classList.remove('ts-dio');}
-            }, 750);
+                e.position.x=-1; php-=4; upd(); setTimeout(()=>e.position.x=2,100); h++;
+                if(h>=9){clearInterval(l); isTS=false; document.body.classList.remove('ts-dio');}
+            }, 800);
         }
 
         function upd() { 
-            document.getElementById('pBar').style.width=Math.max(0,php)+'%'; 
-            document.getElementById('eBar').style.width=Math.max(0,ehp)+'%'; 
-            if(php<=0||ehp<=0) { 
-                gOver=true; 
-                document.getElementById('msg').innerText = php<=0 ? "YOU WERE RETIRED" : "DIO DEFEATED!";
-                setTimeout(() => location.reload(), 3000);
-            }
+            document.getElementById('pBar').style.width=Math.max(0,php)+'%'; document.getElementById('eBar').style.width=Math.max(0,ehp)+'%'; 
+            if(php<=0||ehp<=0) { gOver=true; document.getElementById('retry').style.display='block'; document.getElementById('st').innerText=php<=0?"RETIRED":"DIO DEFEATED"; }
         }
 
-        function animate() { 
-            requestAnimationFrame(animate);
-            if(shake > 0) {
-                c.position.x = (Math.random()-0.5) * shake;
-                c.position.y = (Math.random()-0.5) * shake;
-                shake *= 0.85;
-            } else { c.position.x = c.position.y = 0; }
-            if(!isRetreating && !isTS) e.position.y = Math.sin(Date.now()*0.003)*0.25;
-            if(qteOn){ rSize -= 4; if(rSize<40) rSize=200; document.getElementById('r-circ').style.width=document.getElementById('r-circ').style.height=rSize+'px'; } 
-            r.render(s, c); 
-        }
+        function animate() { requestAnimationFrame(animate); if(qteOn){ rSize -= 4; if(rSize<40) rSize=200; document.getElementById('r-circ').style.width=document.getElementById('r-circ').style.height=rSize+'px'; } r.render(s, c); }
         animate();
     </script>
 </body>
