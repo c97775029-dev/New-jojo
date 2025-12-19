@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bizarre Legacy: Charging Phase</title>
+    <title>Bizarre Legacy: Balanced QTE</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: monospace; touch-action: none; -webkit-user-select: none; }
@@ -47,7 +47,6 @@
         r.setSize(window.innerWidth, window.innerHeight); document.body.appendChild(r.domElement);
         s.add(new THREE.AmbientLight(0xffffff, 1.0)); c.position.z = 5;
 
-        // Visual Aura Light
         const auraLight = new THREE.PointLight(0xffd700, 0, 10); s.add(auraLight);
 
         const p = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0x0066ff})); p.position.x = -2; s.add(p);
@@ -70,7 +69,6 @@
 
         function go() { 
             if(gOver) return;
-
             if(knifeActive && !knifeReturning) {
                 parryAttempts++;
                 if(parryAttempts <= 2 && k.position.x < -0.5 && k.position.x > -1.8) {
@@ -79,23 +77,17 @@
                 }
                 return;
             }
-
             if(isTS && document.body.classList.contains('ts-player')) {
                 ehp -= 1; upd(); p.position.x = 1; setTimeout(()=>p.position.x=-2, 50); return;
             }
-
             if(!canAttack || isTS || isRetreating || qteOn) { if(qteOn) qHit(); return; }
-
-            // Allow attack during charging, but block during special standoff
             if(isPausing && !isCharging) return; 
 
             canAttack = false;
             oraBtn.disabled = true;
-            // Charge Phase Damage Penalty
             ehp -= (isCharging ? 2 : 5); 
             upd();
             p.position.x = 1; setTimeout(()=>p.position.x=-2, 100);
-            
             setTimeout(() => { 
                 if(!gOver && !isRetreating && !isTS && !qteOn) { canAttack = true; oraBtn.disabled = false; }
                 else { canAttack = true; }
@@ -107,13 +99,11 @@
             isRetreating = true; isPausing = true; canAttack = false;
             document.getElementById('msg').innerText = "DIO PREPARES...";
             e.position.x = 5; oraBtn.disabled = true;
-            
             setTimeout(() => {
                 isPausing = false; knifeActive = true; knifeReturning = false; parryAttempts = 0;
                 k.position.set(5, 0, 0); k.visible = true; k.material.color.set(0xcccccc);
                 oraBtn.disabled = false;
                 document.getElementById('msg').innerText = "TIME YOUR PARRY!";
-
                 const tLoop = setInterval(() => {
                     if(gOver || isTS) { clearInterval(tLoop); k.visible=false; return; }
                     if(!knifeReturning) {
@@ -145,23 +135,21 @@
             if(isRetreating || isTS) return;
             isPausing = true; isCharging = true;
             document.getElementById('msg').innerText = "HE'S CHARGING!";
-            
-            // Visual Aura Fix
-            e.material.emissive.setHex(0xffd700); // Glow DIO
+            e.material.emissive.setHex(0xffd700); 
             auraLight.position.set(2, 0, 1);
             auraLight.intensity = 2;
-            
             setTimeout(() => {
                 isPausing = false; isCharging = false;
                 qteOn=true; qHits=0; rSize=200; 
-                e.material.emissive.setHex(0x000000); // Stop Glow
+                e.material.emissive.setHex(0x000000); 
                 auraLight.intensity = 0;
                 document.getElementById('qte').style.display='block';
-            }, 1000); 
+            }, 1200); // 0.2s longer charge time
         }
 
         function qHit() { 
-            if(rSize>70 && rSize<95){ 
+            // SUCCESS ZONE: Widened to 65-105 (was 70-95)
+            if(rSize>65 && rSize<105){ 
                 qHits++; rSize=200; 
                 if(qHits>=3){ qteOn=false; document.getElementById('qte').style.display='none'; playerTS(); }
             } else { qteOn=false; document.getElementById('qte').style.display='none'; dioTS(); }
@@ -197,7 +185,8 @@
         function animate() { 
             requestAnimationFrame(animate); 
             if(qteOn){ 
-                rSize -= (diff=='hard'? 3.8 : 3.0);
+                // SHRINK SPEED: Reduced from 3.8/3.0 to 2.8/2.2
+                rSize -= (diff=='hard'? 2.8 : 2.2);
                 if(rSize<40) rSize=200; 
                 document.getElementById('r-circ').style.width=document.getElementById('r-circ').style.height=rSize+'px'; 
             } 
