@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bizarre Legacy: Aggressive DIO</title>
+    <title>Bizarre Legacy: Precision Pressure</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: monospace; touch-action: none; -webkit-user-select: none; }
@@ -33,7 +33,7 @@
             <div>JOTARO<div class="bar-bg"><div id="pBar"></div></div></div>
             <div>DIO<div class="bar-bg"><div id="eBar"></div></div></div>
         </div>
-        <p id="msg" style="color:gold;font-size:18px">SURVIVE THE ONSLAUGHT</p>
+        <p id="msg" style="color:gold;font-size:18px">FOCUS...</p>
     </div>
     <div id="qte"><div id="t-circ"></div><div id="r-circ"></div></div>
     <div id="retry" style="display:none"><h2 id="st"></h2><button onclick="location.reload()">RETRY</button></div>
@@ -42,82 +42,75 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
         document.addEventListener('touchstart', (e) => { if(e.touches.length > 1) e.preventDefault(); }, {passive: false});
-
         const s = new THREE.Scene(), c = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000), r = new THREE.WebGLRenderer({antialias:true});
         r.setSize(window.innerWidth, window.innerHeight); document.body.appendChild(r.domElement);
         s.add(new THREE.AmbientLight(0xffffff, 1.0)); c.position.z = 5;
-
         const auraLight = new THREE.PointLight(0xffd700, 0, 10); s.add(auraLight);
-
         const p = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0x0066ff})); p.position.x = -2; s.add(p);
         const e = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0xff0000})); e.position.x = 2; s.add(e);
         const k = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.1), new THREE.MeshStandardMaterial({color: 0xcccccc})); k.visible = false; s.add(k);
         
         let php=100, ehp=100, gOver=false, isTS=false, qteOn=false, rSize=200, qHits=0, diff='', isRetreating=false, knifeActive=false, knifeReturning=false, isPausing=false, isCharging=false;
-        let parryAttempts = 0, lastTS = Date.now(), canAttack = true;
+        let lastTS = Date.now(), canAttack = true, dioBlockChance = 10, volleyInc = 15, knifeSpeed = 0.28;
 
         const oraBtn = document.getElementById('oraBtn');
         oraBtn.addEventListener('touchstart', (ev) => { ev.preventDefault(); go(); });
 
         function start(m) {
-            diff=m; document.getElementById('menu').style.display='none';
+            diff=m; 
+            if(diff=='easy'){ dioBlockChance=10; volleyInc=10; }
+            else if(diff=='med'){ dioBlockChance=20; volleyInc=15; }
+            else { dioBlockChance=30; volleyInc=25; }
+            document.getElementById('menu').style.display='none';
             document.getElementById('ui').style.display=document.getElementById('ctrl').style.display='block';
-            
-            // DIO Basic Attack Speed Increased
             setInterval(eAtk, diff=='easy'?6000 : (diff=='med'?3500:2000));
-            
-            // Knife Phase every 6 seconds
             setInterval(() => { if(!isRetreating && !isTS && !isPausing && !qteOn) knifePhase(); }, 6000);
-            
-            // Time Stop every 5 seconds
             setInterval(() => { if(!gOver && !isTS && !isRetreating && !isPausing && !qteOn && (Date.now() - lastTS > 5000)) qOn(); }, 2500);
         }
 
         function go() { 
             if(gOver) return;
             if(knifeActive && !knifeReturning) {
-                parryAttempts++;
-                if(parryAttempts <= 2 && k.position.x < -0.5 && k.position.x > -1.8) {
+                if(k.position.x < -0.4 && k.position.x > -1.9) {
                     knifeReturning = true; k.material.color.set(0xffd700);
-                    document.getElementById('msg').innerText = "PARRIED!!"; return;
+                    document.getElementById('msg').innerText = "PARRIED!!"; 
+                    knifeSpeed += 0.06;
                 }
                 return;
             }
-            if(isTS && document.body.classList.contains('ts-player')) {
-                ehp -= 1; upd(); p.position.x = 1; setTimeout(()=>p.position.x=-2, 50); return;
-            }
+            if(isTS && document.body.classList.contains('ts-player')) { ehp -= 1; upd(); p.position.x = 1; setTimeout(()=>p.position.x=-2, 50); return; }
             if(!canAttack || isTS || isRetreating || qteOn) { if(qteOn) qHit(); return; }
             if(isPausing && !isCharging) return; 
-
-            canAttack = false;
-            oraBtn.disabled = true;
-            ehp -= (isCharging ? 2 : 5); 
-            upd();
+            canAttack = false; oraBtn.disabled = true;
+            ehp -= (isCharging ? 2 : 5); upd();
             p.position.x = 1; setTimeout(()=>p.position.x=-2, 100);
-            setTimeout(() => { 
-                if(!gOver && !isRetreating && !isTS && !qteOn) { canAttack = true; oraBtn.disabled = false; }
-                else { canAttack = true; }
-            }, 750); 
+            setTimeout(() => { if(!gOver && !isRetreating && !isTS && !qteOn) { canAttack = true; oraBtn.disabled = false; } else { canAttack = true; } }, 750); 
         }
         
         function knifePhase() {
             if(gOver || isTS || isRetreating || qteOn) return;
             isRetreating = true; isPausing = true; canAttack = false;
+            let currentChance = dioBlockChance; knifeSpeed = 0.28;
             document.getElementById('msg').innerText = "DIO PREPARES...";
             e.position.x = 5; oraBtn.disabled = true;
             setTimeout(() => {
-                isPausing = false; knifeActive = true; knifeReturning = false; parryAttempts = 0;
+                isPausing = false; knifeActive = true; knifeReturning = false;
                 k.position.set(5, 0, 0); k.visible = true; k.material.color.set(0xcccccc);
                 oraBtn.disabled = false;
-                document.getElementById('msg').innerText = "TIME YOUR PARRY!";
                 const tLoop = setInterval(() => {
                     if(gOver || isTS) { clearInterval(tLoop); k.visible=false; return; }
                     if(!knifeReturning) {
-                        k.position.x -= 0.30; // Slightly faster knife
+                        k.position.x -= knifeSpeed; 
                         if(k.position.x <= -2.5) { clearInterval(tLoop); endKnifePhase(true); }
                     } else {
-                        k.position.x += 0.6; 
-                        if(k.position.x >= 5) { clearInterval(tLoop); endKnifePhase(false); }
+                        k.position.x += (knifeSpeed * 1.5); 
+                        if(k.position.x >= 2.0 && knifeReturning) {
+                            if(Math.random() * 100 < currentChance) {
+                                knifeReturning = false; currentChance += volleyInc;
+                                k.material.color.set(0xff0000);
+                                document.getElementById('msg').innerText = "DIO REFLECTS!";
+                            } else if (k.position.x >= 5) { clearInterval(tLoop); endKnifePhase(false); }
+                        }
                     }
                 }, 20);
             }, 800); 
@@ -125,10 +118,9 @@
 
         function endKnifePhase(hitPlayer) {
             k.visible = false; knifeActive = false;
-            if(hitPlayer) { php -= (diff=='hard'?30:20); document.getElementById('msg').innerText = "TOO SLOW!"; }
-            else { ehp -= 35; document.getElementById('msg').innerText = "DIRECT HIT!"; }
-            upd(); e.position.x = 2; isRetreating = false;
-            canAttack = true; oraBtn.disabled = false;
+            if(hitPlayer) { php -= (diff=='hard'?30:20); document.getElementById('msg').innerText = "HIT!"; }
+            else { ehp -= 35; document.getElementById('msg').innerText = "DIO HIT!"; }
+            upd(); e.position.x = 2; isRetreating = false; canAttack = true; oraBtn.disabled = false;
         }
 
         function eAtk() { 
@@ -140,22 +132,18 @@
         function qOn() { 
             if(isRetreating || isTS || qteOn) return;
             isPausing = true; isCharging = true;
-            document.getElementById('msg').innerText = "HE'S CHARGING!";
-            e.material.emissive.setHex(0xffd700); 
-            auraLight.position.set(2, 0, 1);
-            auraLight.intensity = 2;
+            document.getElementById('msg').innerText = "WATCH OUT!";
+            e.material.emissive.setHex(0xffd700); auraLight.position.set(2, 0, 1); auraLight.intensity = 2;
             setTimeout(() => {
-                isPausing = false; isCharging = false;
-                qteOn=true; qHits=0; rSize=200; 
-                e.material.emissive.setHex(0x000000); 
-                auraLight.intensity = 0;
+                isPausing = false; isCharging = false; qteOn=true; qHits=0; rSize=200; 
+                e.material.emissive.setHex(0x000000); auraLight.intensity = 0;
                 document.getElementById('qte').style.display='block';
-            }, 1000); 
+            }, 900); // Shorter warning time
         }
 
         function qHit() { 
-            if(rSize>65 && rSize<105){ 
-                qHits++; rSize=200; 
+            // HARDER SUCCESS ZONE: 75-95 (was 65-105)
+            if(rSize>75 && rSize<95){ qHits++; rSize=200; 
                 if(qHits>=3){ qteOn=false; document.getElementById('qte').style.display='none'; playerTS(); }
             } else { qteOn=false; document.getElementById('qte').style.display='none'; dioTS(); }
         }
@@ -163,22 +151,16 @@
         function playerTS() {
             isTS=true; lastTS = Date.now(); document.body.classList.add('ts-player');
             document.getElementById('msg').innerText = "STAR PLATINUM!";
-            setTimeout(() => { 
-                isTS = false; document.body.classList.remove('ts-player'); 
-                canAttack = true; oraBtn.disabled = false; 
-            }, 6000);
+            setTimeout(() => { isTS = false; document.body.classList.remove('ts-player'); canAttack = true; oraBtn.disabled = false; }, 6000);
         }
 
         function dioTS() {
             isTS=true; lastTS = Date.now(); document.body.classList.add('ts-dio');
-            document.getElementById('msg').innerText = "ZA WARUDO!!";
+            document.getElementById('msg').innerText = "THE WORLD!!";
             let h=0; const l=setInterval(()=>{
                 if(gOver){clearInterval(l);return;}
                 e.position.x=-1; php-=4; upd(); setTimeout(()=>e.position.x=2,100); h++;
-                if(h>=10){
-                    clearInterval(l); isTS=false; document.body.classList.remove('ts-dio');
-                    canAttack = true; oraBtn.disabled = false;
-                }
+                if(h>=10){ clearInterval(l); isTS=false; document.body.classList.remove('ts-dio'); canAttack = true; oraBtn.disabled = false; }
             }, 800);
         }
 
@@ -190,8 +172,8 @@
         function animate() { 
             requestAnimationFrame(animate); 
             if(qteOn){ 
-                rSize -= (diff=='hard'? 2.8 : 2.2);
-                if(rSize<40) rSize=200; 
+                // FASTER SHRINK: 3.2 for Hard mode
+                rSize -= (diff=='hard'? 3.2 : 2.5); if(rSize<40) rSize=200; 
                 document.getElementById('r-circ').style.width=document.getElementById('r-circ').style.height=rSize+'px'; 
             } 
             r.render(s, c); 
