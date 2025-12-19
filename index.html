@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bizarre Legacy: Standoff Mode</title>
+    <title>Bizarre Legacy: Telegraph Update</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: monospace; touch-action: none; -webkit-user-select: none; }
@@ -14,18 +14,20 @@
         #t-circ { width: 80px; height: 80px; border: 4px solid #fff; border-radius: 50%; position: absolute; transform: translate(-50%,-50%); }
         #r-circ { width: 200px; height: 200px; border: 4px solid gold; border-radius: 50%; position: absolute; transform: translate(-50%,-50%); }
         #ctrl { position: absolute; bottom: 30px; width: 100%; text-align: center; display: none; }
-        button { padding: 15px 30px; font-size: 18px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; margin: 5px; width: 100%; }
+        button { padding: 15px 30px; font-size: 18px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; margin: 5px; width: 150px; }
         button:disabled { background: #444 !important; opacity: 0.7; }
         .ts-player { filter: hue-rotate(260deg); }
         .ts-dio { filter: invert(1); }
+        /* Aura Effect */
+        .aura-yellow { box-shadow: 0 0 50px gold; border: 2px solid gold; }
     </style>
 </head>
 <body>
     <div id="menu">
         <h2 style="color:gold">BIZARRE LEGACY</h2>
-        <button style="background:#0f0" onclick="start('easy')">EASY</button>
-        <button style="background:#fa0" onclick="start('med')">MEDIUM</button>
-        <button style="background:#f00;color:#fff" onclick="start('hard')">HARD</button>
+        <button style="background:#0f0; width:80%" onclick="start('easy')">EASY</button>
+        <button style="background:#fa0; width:80%" onclick="start('med')">MEDIUM</button>
+        <button style="background:#f00; color:#fff; width:80%" onclick="start('hard')">HARD</button>
     </div>
     <div id="ui">
         <div style="display:flex;justify-content:space-around">
@@ -36,7 +38,7 @@
     </div>
     <div id="qte"><div id="t-circ"></div><div id="r-circ"></div></div>
     <div id="retry" style="display:none"><h2 id="st"></h2><button onclick="location.reload()">RETRY</button></div>
-    <div id="ctrl"><button id="oraBtn" style="background:#f05;color:#fff;width:150px">ORA!</button></div>
+    <div id="ctrl"><button id="oraBtn" style="background:#f05;color:#fff">ORA!</button></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
@@ -44,7 +46,7 @@
 
         const s = new THREE.Scene(), c = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000), r = new THREE.WebGLRenderer({antialias:true});
         r.setSize(window.innerWidth, window.innerHeight); document.body.appendChild(r.domElement);
-        s.add(new THREE.AmbientLight(0xffffff, 1)); c.position.z = 5;
+        s.add(new THREE.AmbientLight(0xffffff, 1.2)); c.position.z = 5;
 
         const p = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0x0066ff})); p.position.x = -2; s.add(p);
         const e = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0xff0000})); e.position.x = 2; s.add(e);
@@ -60,20 +62,21 @@
             diff=m; document.getElementById('menu').style.display='none';
             document.getElementById('ui').style.display=document.getElementById('ctrl').style.display='block';
             setInterval(eAtk, diff=='easy'?8000 : (diff=='med'?5000:3000));
-            setInterval(knifePhase, 8000);
-            setInterval(() => { if(!gOver && !isTS && (Date.now() - lastTS > 12000)) qOn(); }, 4000);
+            setInterval(knifePhase, 9000);
+            setInterval(() => { if(!gOver && !isTS && (Date.now() - lastTS > 12000)) qOn(); }, 5000);
         }
 
         function go() { 
-            if(gOver || isPausing) return; // Prevent spam during standoff pause
+            if(gOver || isPausing) return;
 
             if(knifeActive && !knifeReturning) {
                 parryAttempts++;
-                if(parryAttempts <= 2 && k.position.x < -0.5 && k.position.x > -2.5) {
+                // Window check (Wide for easier parry)
+                if(parryAttempts <= 2 && k.position.x < -0.2 && k.position.x > -2.8) {
                     knifeReturning = true; k.material.color.set(0xffd700);
                     document.getElementById('msg').innerText = "PARRIED!!"; return;
                 }
-                if(parryAttempts > 2) return;
+                return;
             }
 
             if(isTS && document.body.classList.contains('ts-player')) {
@@ -89,37 +92,33 @@
         
         function knifePhase() {
             if(gOver || isTS) return;
-            
-            // --- STANDOFF PAUSE ---
             isPausing = true; isRetreating = true;
-            document.getElementById('msg').innerText = "PREPARE!";
+            document.getElementById('msg').innerText = "DIO RETREATS...";
             e.position.x = 5; 
-            oraBtn.disabled = true;
-
+            
             setTimeout(() => {
                 isPausing = false;
                 knifeActive = true; knifeReturning = false; parryAttempts = 0;
                 k.position.set(5, 0, 0); k.visible = true; k.material.color.set(0xcccccc);
-                document.getElementById('msg').innerText = "KNIVES!";
-                oraBtn.disabled = false;
+                document.getElementById('msg').innerText = "PARRY THE KNIFE!";
 
                 const tLoop = setInterval(() => {
                     if(gOver || isTS) { clearInterval(tLoop); k.visible=false; return; }
                     if(!knifeReturning) {
-                        k.position.x -= 0.3;
+                        k.position.x -= 0.22; // SLOWER KNIFE
                         if(k.position.x <= -2.5) {
                             clearInterval(tLoop); k.visible = false; knifeActive = false;
                             php -= (diff=='hard'?30:20); upd(); e.position.x = 2; isRetreating = false;
                         }
                     } else {
-                        k.position.x += 0.6;
+                        k.position.x += 0.5; // RETURN SPEED
                         if(k.position.x >= 5) {
                             clearInterval(tLoop); k.visible = false; knifeActive = false;
                             ehp -= 35; upd(); e.position.x = 2; isRetreating = false;
                         }
                     }
                 }, 20);
-            }, 800); // 0.8s freeze for reaction
+            }, 1000); // 1s Pause for setup
         }
 
         function eAtk() { 
@@ -130,37 +129,47 @@
 
         function qOn() { 
             isPausing = true;
-            document.getElementById('msg').innerText = "WATCH OUT!";
-            oraBtn.disabled = true;
+            document.getElementById('msg').innerText = "DIO IS STOPPING TIME!";
+            // YELLOW AURA START
+            document.body.classList.add('aura-yellow');
             
             setTimeout(() => {
                 isPausing = false;
                 qteOn=true; qHits=0; rSize=200; 
                 document.getElementById('qte').style.display='block';
-                oraBtn.disabled = false;
-            }, 800);
+            }, 1200); // Longer warning
         }
 
         function qHit() { 
             if(rSize>75&&rSize<95){ 
                 qHits++; rSize=200; 
-                if(qHits>=3){ qteOn=false; document.getElementById('qte').style.display='none'; playerTS(); }
-            } else { qteOn=false; document.getElementById('qte').style.display='none'; dioTS(); }
+                if(qHits>=3){ 
+                    qteOn=false; 
+                    document.getElementById('qte').style.display='none'; 
+                    document.body.classList.remove('aura-yellow');
+                    playerTS(); 
+                }
+            } else { 
+                qteOn=false; 
+                document.getElementById('qte').style.display='none'; 
+                document.body.classList.remove('aura-yellow');
+                dioTS(); 
+            }
         }
 
         function playerTS() {
             isTS=true; lastTS = Date.now(); document.body.classList.add('ts-player');
-            document.getElementById('msg').innerText = "STAR PLATINUM!";
-            setTimeout(() => { isTS = false; document.body.classList.remove('ts-player'); }, 5000);
+            document.getElementById('msg').innerText = "TIME IS STOPPED (YOURS)";
+            setTimeout(() => { isTS = false; document.body.classList.remove('ts-player'); }, 6000); // Longer TS
         }
 
         function dioTS() {
             isTS=true; lastTS = Date.now(); document.body.classList.add('ts-dio');
-            document.getElementById('msg').innerText = "ZA WARUDO!!";
+            document.getElementById('msg').innerText = "THE WORLD!!";
             let h=0; const l=setInterval(()=>{
                 if(gOver){clearInterval(l);return;}
                 e.position.x=-1; php-=4; upd(); setTimeout(()=>e.position.x=2,100); h++;
-                if(h>=9){clearInterval(l); isTS=false; document.body.classList.remove('ts-dio');}
+                if(h>=10){clearInterval(l); isTS=false; document.body.classList.remove('ts-dio');}
             }, 800);
         }
 
@@ -169,7 +178,15 @@
             if(php<=0||ehp<=0) { gOver=true; document.getElementById('retry').style.display='block'; document.getElementById('st').innerText=php<=0?"RETIRED":"DIO DEFEATED"; }
         }
 
-        function animate() { requestAnimationFrame(animate); if(qteOn){ rSize -= 4; if(rSize<40) rSize=200; document.getElementById('r-circ').style.width=document.getElementById('r-circ').style.height=rSize+'px'; } r.render(s, c); }
+        function animate() { 
+            requestAnimationFrame(animate); 
+            if(qteOn){ 
+                rSize -= (diff=='hard'? 3.5 : 2.5); // Slower circle shrink
+                if(rSize<40) rSize=200; 
+                document.getElementById('r-circ').style.width=document.getElementById('r-circ').style.height=rSize+'px'; 
+            } 
+            r.render(s, c); 
+        }
         animate();
     </script>
 </body>
