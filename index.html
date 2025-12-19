@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bizarre Legacy: Knife Throw</title>
+    <title>Bizarre Legacy: Knife Parry</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: monospace; touch-action: none; }
@@ -23,14 +23,14 @@
         <h2 style="color:gold">BIZARRE LEGACY</h2>
         <button style="background:#0f0" onclick="start('easy')">EASY</button>
         <button style="background:#fa0" onclick="start('med')">MEDIUM</button>
-        <button style="background:#f00;color:#fff" onclick="start('hard')">HARD (KNIVES)</button>
+        <button style="background:#f00;color:#fff" onclick="start('hard')">HARD (PARRY)</button>
     </div>
     <div id="ui">
         <div style="display:flex;justify-content:space-around">
             <div>JO-STAR<div class="bar-bg"><div id="pBar"></div></div></div>
             <div>DIO<div class="bar-bg"><div id="eBar"></div></div></div>
         </div>
-        <p id="msg" style="color:gold;font-size:18px">WATCH OUT!</p>
+        <p id="msg" style="color:gold;font-size:18px">PARRY THE KNIFE!</p>
     </div>
     <div id="qte"><div id="t-circ"></div><div id="r-circ"></div></div>
     <div id="retry" style="display:none"><h2 id="st"></h2><button onclick="location.reload()">RETRY</button></div>
@@ -44,52 +44,58 @@
 
         const p = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0x0066ff})); p.position.x = -2; s.add(p);
         const e = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0xff0000})); e.position.x = 2; s.add(e);
+        const k = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.1), new THREE.MeshStandardMaterial({color: 0xcccccc})); k.visible = false; s.add(k);
         
-        // Knife Object
-        const k = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.1), new THREE.MeshStandardMaterial({color: 0xcccccc}));
-        k.visible = false; s.add(k);
-        
-        let php=100, ehp=100, gOver=false, isTS=false, qteOn=false, rSize=200, qHits=0, diff='', tsUsed=0, lastTS=0, isRetreating=false;
+        let php=100, ehp=100, gOver=false, isTS=false, qteOn=false, rSize=200, qHits=0, diff='', tsUsed=0, lastTS=0, isRetreating=false, knifeActive=false, knifeReturning=false;
 
         function start(m) {
             diff=m; document.getElementById('menu').style.display='none';
             document.getElementById('ui').style.display=document.getElementById('ctrl').style.display='block';
-            
-            // Standard Attack
             setInterval(eAtk, diff=='easy'?10000 : (diff=='med'?5000:2500));
-            
-            // Knife Throw Interval (Every 5 seconds)
-            setInterval(knifePhase, 5000);
-
+            setInterval(knifePhase, 6000); // Knife every 6s
             if(diff!='easy') setInterval(()=>{ if(!gOver&&!isTS&&ehp<100){ehp=Math.min(100,ehp+25); upd();} }, 10000);
-            setInterval(()=>{ if(!gOver&&!isTS && (Date.now()-lastTS>18000)) qOn(); }, 7000);
+            setInterval(()=>{ if(!gOver&&!isTS && (Date.now()-lastTS>18000)) qOn(); }, 8000);
         }
 
         function go() { 
-            if(gOver||isTS||isRetreating) return; // Can't hit him while he is retreating!
-            if(qteOn) qHit(); 
-            else { p.position.x=1; ehp-=5; upd(); setTimeout(()=>p.position.x=-2,100); }
+            if(gOver||isTS) return;
+            // PARRY LOGIC
+            if(knifeActive && !knifeReturning && k.position.x < -0.5 && k.position.x > -2.5) {
+                knifeReturning = true;
+                k.material.color.set(0xffd700); // Turn Gold
+                document.getElementById('msg').innerText = "PARRIED!!";
+                return;
+            }
+            if(isRetreating || qteOn) {
+                if(qteOn) qHit();
+                return;
+            }
+            p.position.x=1; ehp-=5; upd(); setTimeout(()=>p.position.x=-2,100);
         }
         
         function knifePhase() {
             if(gOver || isTS) return;
-            isRetreating = true;
-            e.position.x = 5; // Jump back
-            document.getElementById('msg').innerText = "MUDA MUDA!";
-            
+            isRetreating = true; knifeActive = true; knifeReturning = false;
+            e.position.x = 5; k.material.color.set(0xcccccc);
             setTimeout(() => {
-                k.position.set(5, 0, 0);
-                k.visible = true;
-                const throwLoop = setInterval(() => {
-                    k.position.x -= 0.4;
-                    if(k.position.x <= -2) {
-                        clearInterval(throwLoop);
-                        k.visible = false;
-                        php -= (diff=='hard'?30:15); // Double Damage
-                        upd();
-                        e.position.x = 2; // Come back
-                        isRetreating = false;
-                        document.getElementById('msg').innerText = "SURVIVE";
+                k.position.set(5, 0, 0); k.visible = true;
+                const tLoop = setInterval(() => {
+                    if(!knifeReturning) {
+                        k.position.x -= 0.25; // Normal fly speed
+                        if(k.position.x <= -2.5) { // It hit you
+                            clearInterval(tLoop); k.visible = false; knifeActive = false;
+                            php -= (diff=='hard'?30:15); upd();
+                            e.position.x = 2; isRetreating = false;
+                            document.getElementById('msg').innerText = "SURVIVE";
+                        }
+                    } else {
+                        k.position.x += 0.5; // Returning speed
+                        if(k.position.x >= 5) { // It hit Dio
+                            clearInterval(tLoop); k.visible = false; knifeActive = false;
+                            ehp -= 40; upd(); // MASSIVE DAMAGE
+                            e.position.x = 2; isRetreating = false;
+                            document.getElementById('msg').innerText = "DIRECT HIT!";
+                        }
                     }
                 }, 20);
             }, 500);
