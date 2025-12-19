@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bizarre Legacy</title>
+    <title>Bizarre Legacy: Knife Throw</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <style>
-        body { margin: 0; overflow: hidden; background: #111; font-family: monospace; touch-action: none; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: monospace; touch-action: none; }
         #menu, #retry { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); background: rgba(0,0,0,0.9); padding: 20px; border: 4px solid gold; text-align: center; color: #fff; z-index: 99; width: 280px; border-radius: 15px; }
         #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: #fff; display: none; pointer-events: none; }
         .bar-bg { width: 120px; height: 12px; border: 2px solid #fff; background: #333; margin: 5px auto; }
@@ -15,7 +15,7 @@
         #r-circ { width: 200px; height: 200px; border: 4px solid gold; border-radius: 50%; position: absolute; transform: translate(-50%,-50%); }
         #ctrl { position: absolute; bottom: 30px; width: 100%; text-align: center; display: none; }
         button { padding: 15px 30px; font-size: 18px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; margin: 5px; width: 100%; }
-        .ts { filter: invert(1) grayscale(1); }
+        .ts { filter: invert(1) grayscale(1) contrast(2); }
     </style>
 </head>
 <body>
@@ -23,14 +23,14 @@
         <h2 style="color:gold">BIZARRE LEGACY</h2>
         <button style="background:#0f0" onclick="start('easy')">EASY</button>
         <button style="background:#fa0" onclick="start('med')">MEDIUM</button>
-        <button style="background:#f00;color:#fff" onclick="start('hard')">HARD</button>
+        <button style="background:#f00;color:#fff" onclick="start('hard')">HARD (KNIVES)</button>
     </div>
     <div id="ui">
         <div style="display:flex;justify-content:space-around">
             <div>JO-STAR<div class="bar-bg"><div id="pBar"></div></div></div>
             <div>DIO<div class="bar-bg"><div id="eBar"></div></div></div>
         </div>
-        <p id="msg" style="color:gold;font-size:18px">READY?</p>
+        <p id="msg" style="color:gold;font-size:18px">WATCH OUT!</p>
     </div>
     <div id="qte"><div id="t-circ"></div><div id="r-circ"></div></div>
     <div id="retry" style="display:none"><h2 id="st"></h2><button onclick="location.reload()">RETRY</button></div>
@@ -41,26 +41,95 @@
         const s = new THREE.Scene(), c = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000), r = new THREE.WebGLRenderer({antialias:true});
         r.setSize(window.innerWidth, window.innerHeight); document.body.appendChild(r.domElement);
         s.add(new THREE.AmbientLight(0xffffff, 0.8)); c.position.z = 5;
+
         const p = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0x0066ff})); p.position.x = -2; s.add(p);
         const e = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0xff0000})); e.position.x = 2; s.add(e);
         
-        let php=100, ehp=100, gOver=false, isTS=false, qteOn=false, rSize=200, qHits=0, diff='', tsUsed=0, lastTS=0;
+        // Knife Object
+        const k = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.1), new THREE.MeshStandardMaterial({color: 0xcccccc}));
+        k.visible = false; s.add(k);
+        
+        let php=100, ehp=100, gOver=false, isTS=false, qteOn=false, rSize=200, qHits=0, diff='', tsUsed=0, lastTS=0, isRetreating=false;
 
         function start(m) {
             diff=m; document.getElementById('menu').style.display='none';
             document.getElementById('ui').style.display=document.getElementById('ctrl').style.display='block';
-            setInterval(eAtk, diff=='easy'?10000 : (diff=='med'?5000:3000));
+            
+            // Standard Attack
+            setInterval(eAtk, diff=='easy'?10000 : (diff=='med'?5000:2500));
+            
+            // Knife Throw Interval (Every 5 seconds)
+            setInterval(knifePhase, 5000);
+
             if(diff!='easy') setInterval(()=>{ if(!gOver&&!isTS&&ehp<100){ehp=Math.min(100,ehp+25); upd();} }, 10000);
-            setInterval(()=>{ if(!gOver&&!isTS && (diff!='easy'||tsUsed<1) && (Date.now()-lastTS>20000)) qOn(); }, 5000);
+            setInterval(()=>{ if(!gOver&&!isTS && (Date.now()-lastTS>18000)) qOn(); }, 7000);
         }
 
-        function go() { if(gOver||isTS)return; if(qteOn)qHit(); else { p.position.x=1; ehp-=5; upd(); setTimeout(()=>p.position.x=-2,100); }}
-        function eAtk() { if(gOver||isTS)return; e.position.x=-1; php-=(diff=='hard'?12:8); upd(); setTimeout(()=>e.position.x=2,100); }
+        function go() { 
+            if(gOver||isTS||isRetreating) return; // Can't hit him while he is retreating!
+            if(qteOn) qHit(); 
+            else { p.position.x=1; ehp-=5; upd(); setTimeout(()=>p.position.x=-2,100); }
+        }
+        
+        function knifePhase() {
+            if(gOver || isTS) return;
+            isRetreating = true;
+            e.position.x = 5; // Jump back
+            document.getElementById('msg').innerText = "MUDA MUDA!";
+            
+            setTimeout(() => {
+                k.position.set(5, 0, 0);
+                k.visible = true;
+                const throwLoop = setInterval(() => {
+                    k.position.x -= 0.4;
+                    if(k.position.x <= -2) {
+                        clearInterval(throwLoop);
+                        k.visible = false;
+                        php -= (diff=='hard'?30:15); // Double Damage
+                        upd();
+                        e.position.x = 2; // Come back
+                        isRetreating = false;
+                        document.getElementById('msg').innerText = "SURVIVE";
+                    }
+                }, 20);
+            }, 500);
+        }
+
+        function eAtk() { 
+            if(gOver||isTS||isRetreating) return; 
+            e.position.x=-1; php-=(diff=='hard'?15:8); 
+            if(diff=='hard') ehp = Math.min(100, ehp + 5);
+            upd(); setTimeout(()=>e.position.x=2,100); 
+        }
+
         function qOn() { qteOn=true; qHits=0; rSize=200; document.getElementById('qte').style.display='block'; }
-        function qHit() { if(rSize>70&&rSize<95){ qHits++; rSize=200; if(qHits>=3){qteOn=false; document.getElementById('qte').style.display='none';}} else { qteOn=false; document.getElementById('qte').style.display='none'; doTS(); }}
-        function doTS() { isTS=true; tsUsed++; lastTS=Date.now(); document.body.classList.add('ts'); let h=0; const l=setInterval(()=>{ if(gOver){clearInterval(l);return;} e.position.x=-1; php-=4; upd(); setTimeout(()=>e.position.x=2,100); h++; if(h>=9){clearInterval(l); isTS=false; document.body.classList.remove('ts');}},1000); }
-        function upd() { document.getElementById('pBar').style.width=Math.max(0,php)+'%'; document.getElementById('eBar').style.width=Math.max(0,ehp)+'%'; if(php<=0||ehp<=0) { gOver=true; document.getElementById('retry').style.display='block'; document.getElementById('st').innerText=php<=0?"RETIRED":"DIO DEFEATED"; }}
-        function animate() { requestAnimationFrame(animate); if(qteOn){ rSize-=2.5; if(rSize<40)rSize=200; document.getElementById('r-circ').style.width=document.getElementById('r-circ').style.height=rSize+'px'; } r.render(s, c); }
+        function qHit() { 
+            if(rSize>75&&rSize<90){ qHits++; rSize=200; if(qHits>=3){qteOn=false; document.getElementById('qte').style.display='none';}} 
+            else { qteOn=false; document.getElementById('qte').style.display='none'; doTS(); }
+        }
+
+        function doTS() { 
+            isTS=true; tsUsed++; lastTS=Date.now(); document.body.classList.add('ts'); 
+            let h=0; let maxHits = (diff=='hard'?12:9);
+            const l=setInterval(()=>{ 
+                if(gOver){clearInterval(l);return;} 
+                e.position.x=-1; php-=4; upd(); 
+                setTimeout(()=>e.position.x=2,100); h++; 
+                if(h>=maxHits){clearInterval(l); isTS=false; document.body.classList.remove('ts');}
+            }, 800);
+        }
+
+        function upd() { 
+            document.getElementById('pBar').style.width=Math.max(0,php)+'%'; 
+            document.getElementById('eBar').style.width=Math.max(0,ehp)+'%'; 
+            if(php<=0||ehp<=0) { gOver=true; document.getElementById('retry').style.display='block'; document.getElementById('st').innerText=php<=0?"RETIRED":"DIO DEFEATED"; }
+        }
+
+        function animate() { 
+            requestAnimationFrame(animate); 
+            if(qteOn){ rSize -= (diff=='hard'? 4.5 : 2.5); if(rSize<40) rSize=200; document.getElementById('r-circ').style.width=document.getElementById('r-circ').style.height=rSize+'px'; } 
+            r.render(s, c); 
+        }
         animate();
     </script>
 </body>
