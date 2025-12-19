@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bizarre Legacy: Avalon & Absolute Freeze</title>
+    <title>Bizarre Legacy: Avalon Unleashed</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: monospace; touch-action: none; -webkit-user-select: none; }
@@ -18,16 +18,16 @@
         .dio-ts { filter: grayscale(1) brightness(0.7) sepia(1) hue-rotate(50deg); }
         .dmg-popup { position: absolute; color: #ff0; font-weight: bold; font-size: 22px; pointer-events: none; text-shadow: 2px 2px #000; animation: floatUp 0.8s ease-out forwards; z-index: 100; }
         #mashUI { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); display: none; text-align: center; z-index: 200; pointer-events: none; }
-        #audioStatus { position: absolute; bottom: 5px; right: 5px; font-size: 10px; color: #444; }
+        #musicRetry { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); background: gold; color: black; padding: 5px; font-size: 10px; display: none; z-index: 1000; cursor: pointer; }
         @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-100px) scale(1.1); opacity: 0; } }
     </style>
 </head>
 <body id="gameBody">
     <audio id="hardMusic" loop preload="auto">
-        <source src="https://files.catbox.moe/g2f6w6.mp3" type="audio/mpeg">
+        <source src="https://www.soundboard.com/handler/DownLoadTrack.ashx?cliptitle=Avalon&filename=mt/MTI0Mjg0NDgxMjQyODQ4_S_2fP2p9hK_2bo.mp3" type="audio/mpeg">
     </audio>
 
-    <div id="audioStatus"></div>
+    <div id="musicRetry" onclick="tryPlayMusic()">MUSIC NOT PLAYING? TAP HERE</div>
     <button id="quitBtn" onclick="location.reload()">QUIT</button>
 
     <div id="mashUI">
@@ -80,15 +80,18 @@
         let eKnives = [], canAttack=true, pCool=750, isBlocking=false;
         let mashCount = 0, struggleActive = false, struggleTimer = 3.0, knifeFrozen = false;
 
+        function tryPlayMusic() {
+            const music = document.getElementById('hardMusic');
+            music.play().then(() => { document.getElementById('musicRetry').style.display = 'none'; });
+        }
+
         function setDiff(m) { diff=m; document.getElementById('menu').style.display='none'; document.getElementById('charMenu').style.display='block'; }
 
         function start(char) {
             matchActive = true; document.getElementById('quitBtn').style.display = 'block';
             if(diff === 'hard') { 
-                const music = document.getElementById('hardMusic');
-                music.volume = 0.5;
-                music.play().then(() => { document.getElementById('audioStatus').innerText = " Avalon Playing"; })
-                .catch(err => { document.getElementById('audioStatus').innerText = " Audio Blocked - Tap screen"; });
+                tryPlayMusic();
+                document.getElementById('musicRetry').style.display = 'block';
             }
             
             ehp = maxEHP = (diff === 'easy') ? 50 : (diff === 'med' ? 100 : 150);
@@ -116,22 +119,22 @@
         function winStruggle() {
             struggleActive = false; 
             knifeFrozen = false;
-            // Delete all knives so they don't launch
+            // Instantly delete knives as requested
             eKnives.forEach(k => s.remove(k.mesh));
             eKnives = [];
             document.getElementById('mashUI').style.display = 'none';
             dioTS = false; document.body.classList.remove('dio-ts');
             isTS = true; document.body.classList.add('ts-active');
-            document.getElementById('msg').innerText = "STAR PLATINUM: THE WORLD!";
+            document.getElementById('msg').innerText = "AWAKENED!";
             setTimeout(() => { isTS = false; document.body.classList.remove('ts-active'); document.getElementById('msg').innerText = "RESUMED!"; }, 3000);
         }
 
         function failStruggle() {
             struggleActive = false;
-            knifeFrozen = false; // Knives launch now
+            knifeFrozen = false; 
             document.getElementById('mashUI').style.display = 'none';
             dioTS = false; document.body.classList.remove('dio-ts');
-            document.getElementById('msg').innerText = "TOO LATE!";
+            document.getElementById('msg').innerText = "FAILED!";
         }
 
         function showDamage(val, x, color="#ff0") {
@@ -146,7 +149,9 @@
                 if(isBlocking) return true;
                 let fDmg = (diff === 'easy') ? dmg * 0.5 : (diff === 'hard' ? dmg * 1.3 : dmg);
                 php -= fDmg; showDamage(fDmg, p.position.x, color);
-            } else { ehp -= dmg; showDamage(dmg, e.position.x, color); }
+            } else { 
+                ehp -= dmg; showDamage(dmg, e.position.x, color); 
+            }
             upd(); return false;
         }
 
@@ -154,7 +159,8 @@
             ev.stopPropagation();
             if(gOver || (!canAttack && !isTS) || dioTS || isBlocking) return;
             if(!isTS) canAttack = false; 
-            applyHit('e', isTS ? 0.5 : 5, isTS?"#0ff":"#ff0");
+            // Fixed Damage: Deals 5 damage even in Time Stop now
+            applyHit('e', 5, isTS ? "#0ff" : "#ff0");
             if(!isTS) setTimeout(() => { canAttack=true; }, pCool);
         };
 
