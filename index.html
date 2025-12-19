@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bizarre Legacy: Star Platinum</title>
+    <title>Bizarre Legacy: The Same Type of Stand</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: monospace; touch-action: none; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: monospace; touch-action: none; -webkit-user-select: none; }
         #menu, #retry { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); background: rgba(0,0,0,0.9); padding: 20px; border: 4px solid gold; text-align: center; color: #fff; z-index: 99; width: 280px; border-radius: 15px; }
         #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: #fff; display: none; pointer-events: none; }
         .bar-bg { width: 120px; height: 12px; border: 2px solid #fff; background: #333; margin: 5px auto; }
@@ -12,10 +12,10 @@
         #eBar { width: 100%; height: 100%; background: #f00; transition: 0.2s; }
         #qte { position: absolute; top: 50%; left: 50%; display: none; z-index: 10; }
         #t-circ { width: 80px; height: 80px; border: 4px solid #fff; border-radius: 50%; position: absolute; transform: translate(-50%,-50%); }
-        #r-circ { width: 200px; height: 200px; border: 4px solid #a0f; border-radius: 50%; position: absolute; transform: translate(-50%,-50%); }
+        #r-circ { width: 200px; height: 200px; border: 4px solid gold; border-radius: 50%; position: absolute; transform: translate(-50%,-50%); }
         #ctrl { position: absolute; bottom: 30px; width: 100%; text-align: center; display: none; }
         button { padding: 15px 30px; font-size: 18px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; margin: 5px; width: 100%; }
-        .ts-dio { filter: invert(1) grayscale(1) contrast(1.5); }
+        .ts-dio { filter: invert(1) grayscale(1); }
         .ts-player { filter: hue-rotate(260deg) saturate(1.5) brightness(0.8); }
     </style>
 </head>
@@ -31,14 +31,16 @@
             <div>JOTARO<div class="bar-bg"><div id="pBar"></div></div></div>
             <div>DIO<div class="bar-bg"><div id="eBar"></div></div></div>
         </div>
-        <p id="msg" style="color:gold;font-size:18px">YARE YARE DAZE...</p>
+        <p id="msg" style="color:gold;font-size:18px">SURVIVE</p>
     </div>
     <div id="qte"><div id="t-circ"></div><div id="r-circ"></div></div>
     <div id="retry" style="display:none"><h2 id="st"></h2><button onclick="location.reload()">RETRY</button></div>
-    <div id="ctrl"><button id="oraBtn" style="background:#f05;color:#fff;width:150px" onclick="go()">ORA!</button></div>
+    <div id="ctrl"><button id="oraBtn" style="background:#f05;color:#fff;width:150px">ORA!</button></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
+        document.addEventListener('touchstart', (e) => { if(e.touches.length > 1) e.preventDefault(); }, {passive: false});
+
         const s = new THREE.Scene(), c = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000), r = new THREE.WebGLRenderer({antialias:true});
         r.setSize(window.innerWidth, window.innerHeight); document.body.appendChild(r.domElement);
         s.add(new THREE.AmbientLight(0xffffff, 0.8)); c.position.z = 5;
@@ -48,14 +50,19 @@
         const k = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.1), new THREE.MeshStandardMaterial({color: 0xcccccc})); k.visible = false; s.add(k);
         
         let php=100, ehp=100, gOver=false, isTS=false, qteOn=false, rSize=200, qHits=0, diff='', isRetreating=false, knifeActive=false, knifeReturning=false;
-        let parryAttempts = 0, qteType = "player";
+        let parryAttempts = 0, lastTS = Date.now();
+
+        document.getElementById('oraBtn').addEventListener('touchstart', (ev) => { ev.preventDefault(); go(); });
 
         function start(m) {
             diff=m; document.getElementById('menu').style.display='none';
             document.getElementById('ui').style.display=document.getElementById('ctrl').style.display='block';
             setInterval(eAtk, diff=='easy'?8000 : (diff=='med'?5000:3000));
             setInterval(knifePhase, 7000);
-            setInterval(() => { if(!gOver && !isTS) qOn("player"); }, 20000);
+            // Check for DIO's Time Stop attempt every 5 seconds
+            setInterval(() => { 
+                if(!gOver && !isTS && (Date.now() - lastTS > 15000)) qOn(); 
+            }, 5000);
             if(diff!='easy') setInterval(()=>{ if(!gOver&&!isTS&&ehp<100){ehp=Math.min(100,ehp+25); upd();} }, 12000);
         }
 
@@ -63,7 +70,7 @@
             if(gOver) return;
             if(knifeActive && !knifeReturning) {
                 parryAttempts++;
-                if(parryAttempts > 2) { document.getElementById('msg').innerText = "GUARD BROKEN!"; return; }
+                if(parryAttempts > 2) return;
                 if(k.position.x < -0.5 && k.position.x > -2.5) {
                     knifeReturning = true; k.material.color.set(0xffd700);
                     document.getElementById('msg').innerText = "PARRIED!!"; return;
@@ -102,11 +109,10 @@
 
         function eAtk() { if(gOver||isTS||isRetreating) return; e.position.x=-1; php-=(diff=='hard'?15:8); upd(); setTimeout(()=>e.position.x=2,100); }
 
-        function qOn(type) { 
-            qteOn=true; qHits=0; rSize=200; qteType = type;
+        function qOn() { 
+            qteOn=true; qHits=0; rSize=200; 
             document.getElementById('qte').style.display='block';
-            document.getElementById('r-circ').style.borderColor = (type === "player") ? "#a0f" : "gold";
-            document.getElementById('msg').innerText = (type === "player") ? "CONCENTRATE..." : "DODGE!";
+            document.getElementById('msg').innerText = "DIO IS STOPPING TIME!";
         }
 
         function qHit() { 
@@ -114,19 +120,24 @@
                 qHits++; rSize=200; 
                 if(qHits>=3){
                     qteOn=false; document.getElementById('qte').style.display='none';
-                    if(qteType === "player") playerTS();
+                    playerTS(); // SUCCESS = YOU STOP TIME
                 }
             } else { qteOn=false; document.getElementById('qte').style.display='none'; dioTS(); }
         }
 
         function playerTS() {
-            isTS=true; document.body.classList.add('ts-player');
-            document.getElementById('msg').innerText = "STAR PLATINUM: THE WORLD!";
-            setTimeout(() => { isTS = false; document.body.classList.remove('ts-player'); document.getElementById('msg').innerText = "TIME RESUMES"; }, 5000);
+            isTS=true; lastTS = Date.now();
+            document.body.classList.add('ts-player');
+            document.getElementById('msg').innerText = "THE SAME TYPE OF STAND...";
+            setTimeout(() => { 
+                isTS = false; document.body.classList.remove('ts-player'); 
+                document.getElementById('msg').innerText = "TIME RESUMES"; 
+            }, 5000);
         }
 
         function dioTS() {
-            isTS=true; document.body.classList.add('ts-dio');
+            isTS=true; lastTS = Date.now();
+            document.body.classList.add('ts-dio');
             document.getElementById('msg').innerText = "ZA WARUDO!!";
             let h=0; const l=setInterval(()=>{
                 if(gOver){clearInterval(l);return;}
