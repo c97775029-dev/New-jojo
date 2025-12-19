@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bizarre Legacy: Time Thief</title>
+    <title>Bizarre Legacy: Tactical Distance</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: monospace; touch-action: none; -webkit-user-select: none; }
@@ -51,7 +51,7 @@
             <div>YOU</div><div class="bar-bg"><div id="pBar"></div></div>
             <div>DIO</div><div class="bar-bg"><div id="eBar"></div></div>
         </div>
-        <p id="msg" style="color:gold">READY?</p>
+        <p id="msg" style="color:gold">DISTANCE INCREASED</p>
     </div>
 
     <div id="retry" style="display:none"><h2 id="st"></h2><button onclick="location.reload()">RETRY</button></div>
@@ -71,9 +71,10 @@
     <script>
         const s = new THREE.Scene(), c = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000), r = new THREE.WebGLRenderer({antialias:true});
         r.setSize(window.innerWidth, window.innerHeight); document.body.appendChild(r.domElement);
-        s.add(new THREE.AmbientLight(0xffffff, 1.0)); c.position.z = 5;
-        const p = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0x0066ff, transparent: true})); p.position.x = -2; s.add(p);
-        const e = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0xff0000, transparent: true})); e.position.x = 2; s.add(e);
+        s.add(new THREE.AmbientLight(0xffffff, 1.2)); c.position.z = 7; // Moved camera back for wider view
+        
+        const p = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0x0066ff, transparent: true})); p.position.x = -3.5; s.add(p);
+        const e = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0xff0000, transparent: true})); e.position.x = 4; s.add(e);
         
         let php=100, maxPHP=100, ehp=100, gOver=false, isTS=false, dioTS=false, isAdmin=false, diff='', isDummy=false, matchActive=false;
         let pKnives = [], eKnives = [], globalKnifePool = 0, dioKnifePool = 0; 
@@ -97,7 +98,7 @@
         blkBtn.onpointerdown = () => { if(!pStunned && !struggleActive) { isBlocking = true; blkBtn.style.background = "cyan"; p.scale.set(1.1, 1, 1); } };
         blkBtn.onpointerup = blkBtn.onpointerleave = () => { isBlocking = false; blkBtn.style.background = "#555"; p.scale.set(1, 1, 1); };
 
-        document.getElementById('tapZone').onpointerdown = (e) => {
+        document.getElementById('tapZone').onpointerdown = () => {
             if(!struggleActive) return;
             mashCount++;
             document.getElementById('mBar').style.width = (mashCount * 10) + "%";
@@ -108,31 +109,24 @@
             struggleActive = false;
             document.getElementById('tapZone').style.display = 'none';
             document.getElementById('mashUI').style.display = 'none';
-            // Stop DIO, Start Player TS
-            dioTS = false;
-            document.body.classList.remove('dio-ts');
-            isTS = true; 
-            document.body.classList.add('ts-active');
-            document.getElementById('msg').innerText = "MY TIME NOW!";
-            setTimeout(() => { 
-                isTS = false; 
-                document.body.classList.remove('ts-active'); 
-                document.getElementById('msg').innerText = "TIME RESUMES.";
-            }, 3000);
+            dioTS = false; document.body.classList.remove('dio-ts');
+            isTS = true; document.body.classList.add('ts-active');
+            document.getElementById('msg').innerText = "MY TIME!";
+            setTimeout(() => { isTS = false; document.body.classList.remove('ts-active'); document.getElementById('msg').innerText = "RESUMED."; }, 3000);
         }
 
         function failStruggle() {
             struggleActive = false;
             document.getElementById('tapZone').style.display = 'none';
             document.getElementById('mashUI').style.display = 'none';
-            document.getElementById('msg').innerText = "TOO SLOW!";
+            document.getElementById('msg').innerText = "FAILED!";
         }
 
         function showDamage(val, x, color="#ff0", isCombo=false) {
             if(!matchActive) return;
             const div = document.createElement('div'); div.className = 'dmg-popup';
             div.innerText = isCombo ? "TOTAL: " + val.toLocaleString() : val;
-            div.style.left = (window.innerWidth / 2 + (x * 100)) + 'px'; div.style.top = '40%'; div.style.color = color;
+            div.style.left = (window.innerWidth / 2 + (x * 80)) + 'px'; div.style.top = '40%'; div.style.color = color;
             document.body.appendChild(div); setTimeout(() => div.remove(), 1200);
         }
 
@@ -140,7 +134,7 @@
             if(target === 'p' && isBlocking) { showDamage("REFLECT!", p.position.x, "cyan"); return true; }
             if(target === 'e') {
                 ehp -= dmg;
-                if(!eStunImmune && !eStunned && !isTS) { // Don't stun during player TS
+                if(!eStunImmune && !eStunned && !isTS) {
                     pComboDmg += dmg; pHits++;
                     if(pHits >= 3) {
                         eStunned=true; showDamage(pComboDmg, e.position.x, "#ff0", true); pHits=0; pComboDmg=0;
@@ -174,38 +168,33 @@
                 let rand = Math.random();
                 if(rand < 0.25 && diff !== 'easy') {
                     document.getElementById('msg').innerText = "ZA WARUDO!!";
-                    dioTS = true; 
-                    struggleActive = true; 
-                    struggleTimer = 2.0;
-                    mashCount = 0;
+                    dioTS = true; struggleActive = true; struggleTimer = 2.0; mashCount = 0;
                     document.body.classList.add('dio-ts');
                     document.getElementById('mashUI').style.display = 'block';
                     document.getElementById('tapZone').style.display = 'block';
                     document.getElementById('mBar').style.width = "0%";
-                    
                     for(let i=0; i<8; i++) setTimeout(() => { if(dioTS) spawnEKnife(); }, i * 350);
                     setTimeout(() => { if(dioTS) { endDioTS(); failStruggle(); } }, 3500);
                 } else if (rand < 0.5) { spawnEKnife(); } 
-                else { e.position.x = 0; applyHit('p', 8, "#f00"); setTimeout(()=>e.position.x = 2, 150); }
+                else { e.position.x = -2.5; applyHit('p', 8, "#f00"); setTimeout(()=>e.position.x = 4, 150); }
             }
         }
 
         function endDioTS() {
-            dioTS = false;
-            document.body.classList.remove('dio-ts');
+            dioTS = false; document.body.classList.remove('dio-ts');
             document.getElementById('mashUI').style.display = 'none';
             document.getElementById('tapZone').style.display = 'none';
         }
 
         function spawnEKnife() {
-            const knf = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.1), new THREE.MeshStandardMaterial({color: 0xffaa00}));
+            const knf = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.15, 0.1), new THREE.MeshStandardMaterial({color: 0xffaa00}));
             knf.position.set(e.position.x - 0.5, e.position.y + (Math.random()*1.5-0.75), 0);
             s.add(knf); eKnives.push({ mesh: knf, launched: !dioTS, reflected: false });
         }
 
         document.getElementById('tsBtn').onclick = () => { isTS = !isTS; document.body.classList.toggle('ts-active', isTS); };
         document.getElementById('knfBtn').onclick = () => {
-            const knf = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.1), new THREE.MeshStandardMaterial({color: 0xcccccc}));
+            const knf = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.15, 0.1), new THREE.MeshStandardMaterial({color: 0xcccccc}));
             knf.position.set(p.position.x + 0.5, p.position.y + 0.5, 0); s.add(knf); pKnives.push({ mesh: knf, launched: !isTS });
         };
 
@@ -240,7 +229,8 @@
                 });
                 eKnives.forEach((k, i) => {
                     if (!dioTS || k.launched) {
-                        k.mesh.position.x += k.reflected ? 0.6 : -0.4;
+                        // Slower Knife Speed (0.28 vs 0.4) for easier blocking
+                        k.mesh.position.x += k.reflected ? 0.6 : -0.28;
                         if (!k.reflected && Math.abs(k.mesh.position.x - p.position.x) < 0.6) {
                             if(isBlocking) { k.reflected = true; k.mesh.material.color.set(0x00ffff); }
                             else { let d = 15; if(dioTS) dioKnifePool += d; else applyHit('p', d, "#f00"); s.remove(k.mesh); eKnives.splice(i, 1); }
