@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bizarre Legacy 3D</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #111; font-family: sans-serif; }
+        #ui { position: absolute; top: 20px; width: 100%; text-align: center; color: gold; text-shadow: 2px 2px #000; pointer-events: none; }
+        #controls { position: absolute; bottom: 40px; width: 100%; text-align: center; }
+        button { background: linear-gradient(#ff0055, #aa0033); border: 2px solid #fff; color: white; padding: 20px 40px; font-size: 24px; border-radius: 15px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div id="ui"><h1>BIZARRE LEGACY 3D</h1><p id="log">READY TO FIGHT</p></div>
+    <div id="controls"><button onclick="attack()">BEATDOWN!</button></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const light = new THREE.DirectionalLight(0xffffff, 1);
+        light.position.set(5, 10, 7.5);
+        scene.add(light);
+        scene.add(new THREE.AmbientLight(0x404040));
+
+        // Player (Blue) and Enemy (Red)
+        const player = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({ color: 0x0066ff }));
+        player.position.set(-2, 0, 0);
+        scene.add(player);
+
+        const enemy = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({ color: 0xff0000 }));
+        enemy.position.set(2, 0, 0);
+        scene.add(enemy);
+
+        camera.position.set(0, 1, 6);
+
+        function attack() {
+            player.position.x = 1.2;
+            document.getElementById('log').innerText = "ORA ORA ORA!";
+            setTimeout(() => { player.position.x = -2; document.getElementById('log').innerText = "WAITING..."; }, 300);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>
